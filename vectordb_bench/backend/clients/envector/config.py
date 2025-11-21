@@ -6,7 +6,7 @@ from ..api import DBCaseConfig, DBConfig, IndexType, MetricType, SQType
 class EnVectorConfig(DBConfig):
     uri: SecretStr = SecretStr("http://localhost:50050")
     key_path: str = "keys"
-    key_id: str = "default"
+    key_id: str = "default_key"
 
     def to_dict(self) -> dict:
         return {
@@ -43,21 +43,55 @@ class EnVectorIndexConfig(BaseModel):
 
 class FlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
     index: IndexType = IndexType.Flat
-    metric_type: MetricType = MetricType.COSINE  # envector는 cosine 유사도만 지원
+    metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
+    eval_mode: str = "mm"  # default eval_mode
 
     def index_param(self) -> dict:
         return {
-            "metric_type": "COSINE",  # envector는 내적 기반 cosine만 지원
+            "metric_type": "COSINE",
             "index_type": self.index.value,
-            "params": {},
+            "eval_mode": self.eval_mode,
+            "params": {"index_type": "FLAT"},
         }
 
     def search_param(self) -> dict:
         return {
-            "metric_type": "COSINE",  # envector는 내적 기반 cosine만 지원
+            "metric_type": "COSINE",
+            "search_params": {},
+        }
+
+
+class IVFFlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
+    index: IndexType = IndexType.IVFFlat
+    metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
+    nlist : int = 0
+    nprobe: int = 0
+    eval_mode: str = "mm"
+    train_centroids: bool = False # whether to train centroids before inserting data
+    centroids_path: str | None = None  # path to centroids file
+    is_vct: bool = False          # whether use VCT index
+    vct_path: str | None = None   # path to VCT index file
+
+    def index_param(self) -> dict:
+        return {
+            "metric_type": "COSINE",
+            "index_type": self.index.value,
+            "eval_mode": self.eval_mode,
+            "params": {"index_type": "IVF_FLAT", "nlist": self.nlist, "default_nprobe": self.nprobe},
+            "train_centroids": self.train_centroids,
+            "centroids_path": self.centroids_path,
+            "is_vct": self.is_vct,
+            "vct_path": self.vct_path,
+        }
+
+    def search_param(self) -> dict:
+        return {
+            "metric_type": "COSINE",
+            "search_params": {"nprobe": self.nprobe},
         }
 
 
 _envector_case_config = {
     IndexType.Flat: FlatIndexConfig,
+    IndexType.IVFFlat: IVFFlatIndexConfig,
 }
