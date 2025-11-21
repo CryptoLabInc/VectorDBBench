@@ -40,6 +40,12 @@ dependencies = [
     "pydantic<v2",
     "scikit-learn",
     "pymilvus", # with pandas, numpy, ujson
+    "ujson",
+    "pgvector",
+    "psycopg",
+    "psycopg[binary]",
+    "datasets",
+    "faiss-cpu"
 ]
 dynamic = ["version"]
 
