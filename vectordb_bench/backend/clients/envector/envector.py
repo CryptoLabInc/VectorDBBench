@@ -4,6 +4,7 @@ import logging
 import os
 from collections.abc import Iterable
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 import es2
@@ -54,7 +55,6 @@ class EnVector(VectorDB):
 
         self.is_vct: bool = False
         self.vct_params: dict[str, Any] = {}
-        kwargs: dict[str, Any] = {}
 
         es2.init(
             address=self.db_config.get("uri"),
@@ -70,66 +70,73 @@ class EnVector(VectorDB):
         # Create the collection
         log.info(f"{self.name} create index: {self.collection_name}")
 
+        index_kwargs = dict(kwargs)
+        self._ensure_index(dim, index_kwargs)
+
+        es2.disconnect()
+
+    def _ensure_index(self, dim: int, index_kwargs: dict[str, Any]):
         if self.collection_name in es2.get_index_list():
             log.info(f"{self.name} index {self.collection_name} already exists, skip creating")
             self.is_vct = self.case_config.index_param().get("is_vct", False)
             log.debug(f"IS_VCT: {self.is_vct}")
+            return
+        self._create_index(dim, index_kwargs)
 
-        else:
-            index_param = self.case_config.index_param().get("params", {})
-            index_type = index_param.get("index_type", "FLAT")
-            train_centroids = self.case_config.index_param().get("train_centroids", False)
+    def _create_index(self, dim: int, index_kwargs: dict[str, Any]):
+        index_param = self.case_config.index_param().get("params", {})
+        index_type = index_param.get("index_type", "FLAT")
+        train_centroids = self.case_config.index_param().get("train_centroids", False)
 
-            if index_type == "IVF_FLAT" and train_centroids:
+        if index_type == "IVF_FLAT" and train_centroids:
+            self._configure_centroids(index_param, index_kwargs)
 
-                centroid_path = self.case_config.index_param().get("centroids_path", None)
-                self.is_vct = self.case_config.index_param().get("is_vct", False)
-                log.debug(f"IS_VCT: {self.is_vct}")
+        if index_type == "IVF_FLAT":
+            self._adjust_batch_size()
 
-                if centroid_path is not None:
-                    if not os.path.exists(centroid_path):
-                        raise FileNotFoundError(f"Centroid file {centroid_path} not found for IVF_FLAT index training.")
+        es2.create_index(
+            index_name=self.collection_name,
+            dim=dim,
+            key_path=self.db_config.get("key_path"),
+            key_id=self.db_config.get("key_id"),
+            index_params=index_param,
+            eval_mode=self.case_config.eval_mode,
+            **index_kwargs,
+        )
 
-                    # load trained centroids from file
-                    log.debug(f"Centroids: {centroid_path}")
-                    centroids = np.load(centroid_path)
-                    log.info(f"{self.name} loaded centroids from {centroid_path} for IVF_FLAT index training.")
+    def _configure_centroids(self, index_param: dict[str, Any], index_kwargs: dict[str, Any]):
+        centroid_path = self.case_config.index_param().get("centroids_path", None)
+        self.is_vct = self.case_config.index_param().get("is_vct", False)
+        log.debug(f"IS_VCT: {self.is_vct}")
 
-                    # set centroids for index creation
-                    index_param["centroids"] = centroids.tolist()
+        if centroid_path is None:
+            raise ValueError("Centroids path must be provided for IVF_FLAT index training.")
 
-                    if self.is_vct:
-                        # set VCT parameters if applicable
-                        vct_path = self.case_config.index_param().get("vct_path", None)
-                        log.debug(f"VCT: {vct_path}")
-                        index_param["virtual_cluster"] = True
-                        kwargs["tree_description"] = vct_path
-                        self.is_vct = True
-                        log.info(f"{self.name} VCT parameters set for IVF_FLAT index creation.")
+        centroid_file = Path(centroid_path)
+        if not centroid_file.exists():
+            msg = f"Centroid file {centroid_path} not found for IVF_FLAT index training."
+            raise FileNotFoundError(msg)
 
-                else:
-                    raise ValueError("Centroids path must be provided for IVF_FLAT index training.")
+        log.debug(f"Centroids: {centroid_path}")
+        centroids = np.load(centroid_file)
+        log.info(f"{self.name} loaded centroids from {centroid_path} for IVF_FLAT index training.")
 
-            # set larger batch size for IVF_FLAT insertions
-            if index_type == "IVF_FLAT":
-                self.batch_size = int(os.environ.get("NUM_PER_BATCH", 500_000))
-                log.debug(
-                    f"Set EnVector IVF_FLAT insert batch size to {self.batch_size}. "
-                    f"This should be the size of dataset for better performance when IVF_FLAT."
-                )
+        index_param["centroids"] = centroids.tolist()
 
-            # create index after training centroids
-            es2.create_index(
-                index_name=self.collection_name,
-                dim=dim,
-                key_path=self.db_config.get("key_path"),
-                key_id=self.db_config.get("key_id"),
-                index_params=index_param,
-                eval_mode=self.case_config.eval_mode,
-                **kwargs,
-            )
+        if self.is_vct:
+            vct_path = self.case_config.index_param().get("vct_path", None)
+            log.debug(f"VCT: {vct_path}")
+            index_param["virtual_cluster"] = True
+            index_kwargs["tree_description"] = vct_path
+            self.is_vct = True
+            log.info(f"{self.name} VCT parameters set for IVF_FLAT index creation.")
 
-        es2.disconnect()
+    def _adjust_batch_size(self):
+        self.batch_size = int(os.environ.get("NUM_PER_BATCH", "500000"))
+        log.debug(
+            f"Set EnVector IVF_FLAT insert batch size to {self.batch_size}. "
+            f"This should be the size of dataset for better performance when IVF_FLAT."
+        )
 
     @contextmanager
     def init(self):
@@ -148,7 +155,7 @@ class EnVector(VectorDB):
         try:
             self.col = es2.Index(self.collection_name)
             if self.is_vct:
-                log.debug(f"VCT: {self.col.index_config.index_param.index_params["virtual_cluster"]}")
+                log.debug(f"VCT: {self.col.index_config.index_param.index_params['virtual_cluster']}")
                 is_vct = self.case_config.index_param().get("is_vct", False)
                 assert self.is_vct == is_vct, "is_vct mismatch"
                 vct_path = self.case_config.index_param().get("vct_path", None)
@@ -243,11 +250,11 @@ class EnVector(VectorDB):
             # Extract metadata from results
             # res structure: [[{id: X, score: Y, metadata: Z}, ...]]
             log.debug(f"Search results: {res[0][:1]}")  # Log first 1 results for debugging
-            if len(res) > 0 and len(res[0]) > 0:
-                return [int(result["metadata"]) for result in res[0] if "metadata" in result]
-            log.warning(f"Unexpected result structure: {res}")
-            return []
+            if not (res and len(res[0]) > 0):
+                log.warning(f"Unexpected result structure: {res}")
+                return []
+            return [int(result["metadata"]) for result in res[0] if "metadata" in result]
 
-        except Exception as e:
-            log.error(f"Search failed: {e}")
+        except Exception:
+            log.exception("Search failed")
             return []
