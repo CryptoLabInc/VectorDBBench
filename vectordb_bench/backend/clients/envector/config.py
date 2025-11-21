@@ -1,6 +1,6 @@
 from pydantic import BaseModel, SecretStr
 
-from ..api import DBCaseConfig, DBConfig, IndexType, MetricType, SQType
+from ..api import DBCaseConfig, DBConfig, IndexType, MetricType
 
 
 class EnVectorConfig(DBConfig):
@@ -67,10 +67,10 @@ class IVFFlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
     nlist: int = 0
     nprobe: int = 0
     eval_mode: str = "mm"
-    train_centroids: bool = False # whether to train centroids before inserting data
+    train_centroids: bool = False  # whether to train centroids before inserting data
     centroids_path: str | None = None  # path to centroids file
-    is_vct: bool = False          # whether use VCT index
-    vct_path: str | None = None   # path to VCT index file
+    is_vct: bool = False  # whether use VCT index
+    vct_path: str | None = None  # path to VCT index file
 
     def index_param(self) -> dict:
         return {

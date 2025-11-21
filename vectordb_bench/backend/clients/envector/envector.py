@@ -1,22 +1,18 @@
 """Wrapper around the EnVector vector database over VectorDB"""
 
-from typing import Any, Dict
-
 import logging
 import os
 from collections.abc import Iterable
 from contextlib import contextmanager
-import pickle
-
-import numpy as np
+from typing import Any
 
 import es2
+import numpy as np
 
 from vectordb_bench.backend.filter import Filter, FilterOp
 
 from ..api import VectorDB
 from .config import EnVectorIndexConfig
-
 
 log = logging.getLogger(__name__)
 
@@ -45,8 +41,8 @@ class EnVector(VectorDB):
         self.case_config = db_case_config
         self.collection_name = collection_name
 
-        self.batch_size = 128 * 32 # default batch size for insertions, can be modified for IVF_FLAT
-        
+        self.batch_size = 128 * 32  # default batch size for insertions, can be modified for IVF_FLAT
+
         self._primary_field = "pk"
         self._scalar_id_field = "id"
         self._scalar_label_field = "label"
@@ -57,23 +53,23 @@ class EnVector(VectorDB):
         self.col: es2.Index | None = None
 
         self.is_vct: bool = False
-        self.vct_params: Dict[str, Any] = {}
-        kwargs: Dict[str, Any] = {}
-        
+        self.vct_params: dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
+
         es2.init(
-            address=self.db_config.get("uri"), 
-            key_path=self.db_config.get("key_path"), 
+            address=self.db_config.get("uri"),
+            key_path=self.db_config.get("key_path"),
             key_id=self.db_config.get("key_id"),
             eval_mode=self.case_config.eval_mode,
         )
         if drop_old:
-            log.info(f"{self.name} client drop_old index: {self.collection_name}")  
-            if self.collection_name in es2.get_index_list():          
+            log.info(f"{self.name} client drop_old index: {self.collection_name}")
+            if self.collection_name in es2.get_index_list():
                 es2.drop_index(self.collection_name)
-        
+
         # Create the collection
         log.info(f"{self.name} create index: {self.collection_name}")
-        
+
         if self.collection_name in es2.get_index_list():
             log.info(f"{self.name} index {self.collection_name} already exists, skip creating")
             self.is_vct = self.case_config.index_param().get("is_vct", False)
@@ -83,21 +79,21 @@ class EnVector(VectorDB):
             index_param = self.case_config.index_param().get("params", {})
             index_type = index_param.get("index_type", "FLAT")
             train_centroids = self.case_config.index_param().get("train_centroids", False)
-            
+
             if index_type == "IVF_FLAT" and train_centroids:
-                
+
                 centroid_path = self.case_config.index_param().get("centroids_path", None)
                 self.is_vct = self.case_config.index_param().get("is_vct", False)
                 log.debug(f"IS_VCT: {self.is_vct}")
-                
+
                 if centroid_path is not None:
                     if not os.path.exists(centroid_path):
                         raise FileNotFoundError(f"Centroid file {centroid_path} not found for IVF_FLAT index training.")
-                    
+
                     # load trained centroids from file
                     log.debug(f"Centroids: {centroid_path}")
                     centroids = np.load(centroid_path)
-                    log.info(f"{self.name} loaded centroids from {centroid_path} for IVF_FLAT index training.")                        
+                    log.info(f"{self.name} loaded centroids from {centroid_path} for IVF_FLAT index training.")
 
                     # set centroids for index creation
                     index_param["centroids"] = centroids.tolist()
@@ -190,7 +186,7 @@ class EnVector(VectorDB):
         # use the first insert_embeddings to init collection
         assert self.col is not None
         assert len(embeddings) == len(metadata)
-        
+
         log.debug(f"IS_VCT: {self.is_vct}")
 
         insert_count = 0
@@ -229,7 +225,7 @@ class EnVector(VectorDB):
                     output_fields=["metadata"],
                     search_params=self.case_config.search_param().get("search_params", {}),
                 )
-            
+
             else:
                 # Perform the search.
                 res = self.col.search(
@@ -249,9 +245,8 @@ class EnVector(VectorDB):
             log.debug(f"Search results: {res[0][:1]}")  # Log first 1 results for debugging
             if len(res) > 0 and len(res[0]) > 0:
                 return [int(result["metadata"]) for result in res[0] if "metadata" in result]
-            else:
-                log.warning(f"Unexpected result structure: {res}")
-                return []
+            log.warning(f"Unexpected result structure: {res}")
+            return []
 
         except Exception as e:
             log.error(f"Search failed: {e}")
