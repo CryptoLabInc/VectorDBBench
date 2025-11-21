@@ -64,7 +64,7 @@ class FlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
 class IVFFlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
     index: IndexType = IndexType.IVFFlat
     metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
-    nlist : int = 0
+    nlist: int = 0
     nprobe: int = 0
     eval_mode: str = "mm"
     train_centroids: bool = False # whether to train centroids before inserting data
