@@ -23,7 +23,7 @@ class EnVectorTypedDict(TypedDict):
         str,
         click.option("--eval-mode", help="Evaluation mode", type=click.Choice(["mm", "rmp"]), default="mm"),
     ]
-    
+
 
 class EnVectorFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict): ...
 
@@ -31,7 +31,7 @@ class EnVectorFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict): ...
 @cli.command(name="envectorflat")
 @click_parameter_decorators_from_typed_dict(EnVectorFlatIndexTypedDict)
 def EnVectorFlat(**parameters: Unpack[EnVectorFlatIndexTypedDict]):
-    from .config import FlatIndexConfig, EnVectorConfig
+    from .config import EnVectorConfig, FlatIndexConfig
 
     run(
         db=DBTYPE,
@@ -46,7 +46,7 @@ def EnVectorFlat(**parameters: Unpack[EnVectorFlatIndexTypedDict]):
     )
 
 
-class EnVectorIVFFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict): 
+class EnVectorIVFFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict):
     nlist: Annotated[
         int,
         click.option("--nlist", type=int, help="nlist for IVF index", default=250),
@@ -76,7 +76,7 @@ class EnVectorIVFFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict):
 @cli.command(name="envectorivfflat")
 @click_parameter_decorators_from_typed_dict(EnVectorIVFFlatIndexTypedDict)
 def EnVectorIVFFlat(**parameters: Unpack[EnVectorIVFFlatIndexTypedDict]):
-    from .config import IVFFlatIndexConfig, EnVectorConfig
+    from .config import EnVectorConfig, IVFFlatIndexConfig
 
     run(
         db=DBTYPE,
@@ -87,7 +87,7 @@ def EnVectorIVFFlat(**parameters: Unpack[EnVectorIVFFlatIndexTypedDict]):
             index_params={"nlist": parameters["nlist"], "nprobe": parameters["nprobe"]},
         ),
         db_case_config=IVFFlatIndexConfig(
-            nlist=parameters["nlist"], 
+            nlist=parameters["nlist"],
             nprobe=parameters["nprobe"],
             train_centroids=parameters["train_centroids"],
             centroids_path=parameters["centroids_path"],
