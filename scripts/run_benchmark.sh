@@ -43,7 +43,7 @@ COMMON_ARGS=(
     --uri "$ENVECTOR_URI"
     --eval-mode mm
     --case-type "$CASE_TYPE"
-    --custom-case-name "$CASE_NAME"
+    --custom-case-name "$DATASET_NAME"
     --custom-dataset-name "$DATASET_NAME"
     --custom-dataset-dir ""
     --custom-dataset-size 400335
@@ -68,17 +68,17 @@ if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "flat" ]]; then
     run_case envectorflat "$DATASET_NAME-FLAT"
 fi
 
+if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf-random" ]]; then
+    run_case envectorivfflat "$DATASET_NAME-IVF-RANDOM" \
+        --nlist "$NLIST" \
+        --nprobe "$NPROBE"
+fi
+
 if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf" ]]; then
     export NUM_PER_BATCH=500000  # set database size for efficiency
     run_case envectorivfflat "$DATASET_NAME-IVF-FLAT" \
         --train-centroids True \
         --centroids-path "$CENTROID_PATH" \
-        --nlist "$NLIST" \
-        --nprobe "$NPROBE"
-fi
-
-if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf-random" ]]; then
-    run_case envectorivfflat "$DATASET_NAME-IVF-RANDOM" \
         --nlist "$NLIST" \
         --nprobe "$NPROBE"
 fi
