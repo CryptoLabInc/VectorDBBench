@@ -33,9 +33,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$REQUESTED_TYPE" in
-    ""|flat|ivf|ivf-random|ivf-gas) ;;
+    ""|flat|ivf|ivf-trained|ivf-gas) ;;
     *)
-        echo "Invalid --type: $REQUESTED_TYPE (expected: flat / ivf / ivf-random / ivf-gas)" >&2
+        echo "Invalid --type: $REQUESTED_TYPE (expected: flat / ivf / ivf-trained / ivf-gas)" >&2
         exit 1
         ;;
 esac
@@ -68,13 +68,13 @@ if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "flat" ]]; then
     run_case envectorflat "$DATASET_NAME-FLAT"
 fi
 
-if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf-random" ]]; then
+if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf" ]]; then
     run_case envectorivfflat "$DATASET_NAME-IVF-RANDOM" \
         --nlist "$NLIST" \
         --nprobe "$NPROBE"
 fi
 
-if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf" ]]; then
+if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf-trained" ]]; then
     export NUM_PER_BATCH=500000  # set database size for efficiency
     run_case envectorivfflat "$DATASET_NAME-IVF-FLAT" \
         --train-centroids True \
