@@ -125,6 +125,7 @@ python -m vectordb_bench.cli.vectordbbench envectorflat \
     --db-label "Performance1536D500K-FLAT"
 
 # ivf: IVF-FLAT with random centroids
+export NUM_PER_BATCH=500000 # set to the database size for efficiency
 python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --uri "localhost:50050" \
     --case-type "Performance1536D500K" \

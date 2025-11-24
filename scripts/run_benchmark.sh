@@ -69,6 +69,7 @@ if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "flat" ]]; then
 fi
 
 if [[ -z "$REQUESTED_TYPE" || "$REQUESTED_TYPE" == "ivf" ]]; then
+    export NUM_PER_BATCH=500000  # set database size for efficiency
     run_case envectorivfflat "$DATASET_NAME-IVF-RANDOM" \
         --nlist "$NLIST" \
         --nprobe "$NPROBE"
