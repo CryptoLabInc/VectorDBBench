@@ -109,9 +109,10 @@ export NUM_PER_BATCH=4096
 Run the provided shell scripts (`./scripts/run_benchmark.sh`) as the following:
 
 ```bash
-./scripts/run_benchmark.sh --type flat     # FLAT
-./scripts/run_benchmark.sh --type ivf      # IVF
-./scripts/run_benchmark.sh --type ivf-gas  # Our ANN (GAS)
+./scripts/run_benchmark.sh --type flat       # FLAT
+./scripts/run_benchmark.sh --type ivf        # IVF-FLAT with trained centroids via k-means cluster
+./scripts/run_benchmark.sh --type ivf-random # IVF-FLAT with random centroids
+./scripts/run_benchmark.sh --type ivf-gas    # IVF-FLAT with Our ANN (GAS)
 ```
 
 For more details, please refer to `./scripts/run_benchmark.sh` or `./scripts/envector_benchmark_config.yml` for benchmarks with enVector with ANN (VCT). Or you can use the following command:
@@ -124,13 +125,12 @@ python -m vectordb_bench.cli.vectordbbench envectorflat \
     --db-label "Performance1536D500K-FLAT" \
     --eval-mode mm
 
-# IVF-FLAT
+# IVF-FLAT with random centroids
 python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --uri "localhost:50050" \
     --case-type "Performance1536D500K" \
     --db-label "Performance1536D500K-IVF-FLAT" \
     --eval-mode mm \
-    --train-centroids False \  # random centroids
     --nlist 250 \
     --nprobe 6
 
