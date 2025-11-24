@@ -164,3 +164,25 @@ python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --nlist 32768 \
     --nprobe 6
 ```
+
+### CLI Options
+
+enVector Types for VectorDBBench
+- `envectorflat`: FLAT as index type for enVector
+- `envectorivfflat`: IVF_FLAT as index type for enVector
+
+Common Options for enVector
+- `--uri`: enVector server URI
+- `--eval-mode`: FHE evaluation mode on server. Use `mm` for enhanced performance.
+
+ANN Options for enVector
+- `--nlist`: Number of coarse clusters for IVF_FLAT
+- `--nprobe`: Number of clusters to scan during search for IVF_FLAT
+- `--train-centroids`: whether to use trained centroids for IVF_FLAT
+- `--centroids-path`: path to the trained centorids
+- `--is-vct`: whether to use VCT approach for IVF_GAS
+- `--vct-path`: path to the trained VCT metadata for IVF_GAS
+
+Benchmark Options:
+    follows convections of VectorDBBench, 
+    see details in [VectorDBBench Options](https://github.com/zilliztech/VectorDBBench?tab=readme-ov-file#custom-dataset-for-performance-case)
