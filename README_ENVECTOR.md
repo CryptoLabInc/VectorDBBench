@@ -1,4 +1,4 @@
-# enVector with ANN (GAS) in VectorDBBench
+# enVector with ANN (IVF-GAS) in VectorDBBench
 
 This guide demonstrates how to use enVector with an ANN index in VectorDBBench.
 
@@ -63,7 +63,7 @@ python ./scripts/prepare_dataset.py \
     -e embeddinggemma-300m
 ```
 
-Then, you can find the following generated files:
+Then, you can find the generated files as follow:
 
 ```bash
 .
@@ -104,7 +104,11 @@ export DATASET_LOCAL_DIR="./dataset"
 export NUM_PER_BATCH=4096
 ```
 
-## Run Benchmark
+## Run Our Benchmarks
+
+We provide two benchmark datasets:
+- `PUBMED768D400K`
+- `BLOOMBERG768D368K`
 
 Run the provided shell scripts (`./scripts/run_benchmark.sh`) as the following:
 
@@ -112,10 +116,36 @@ Run the provided shell scripts (`./scripts/run_benchmark.sh`) as the following:
 ./scripts/run_benchmark.sh --type flat        # FLAT
 ./scripts/run_benchmark.sh --type ivf         # IVF-FLAT with random centroids
 ./scripts/run_benchmark.sh --type ivf-trained # IVF-FLAT with trained centroids (w/ k-means clustering, etc.)
-./scripts/run_benchmark.sh --type ivf-gas     # IVF-FLAT with Our ANN (GAS)
+./scripts/run_benchmark.sh --type ivf-gas     # IVF-FLAT with enVector-customized ANN (GAS)
 ```
 
-For more details, please refer to `./scripts/run_benchmark.sh` or `./scripts/envector_{benchmark}_config.yml` for benchmarks with enVector with ANN (VCT). Or you can use the following command:
+For more details, please refer to `run_benchmark.sh` or `envector_{benchmark}_config.yml` in scripts directory for benchmarks with enVector with ANN (VCT), or you can use the following command:
+
+```bash
+# ivf-gas: IVF-FLAT with our ANN (GAS)
+export NUM_PER_BATCH=500000 # set to the database size for efficiency
+python -m vectordb_bench.cli.vectordbbench envectorivfflat \
+    --uri "localhost:50050" \
+    --case-type "PerformanceCustomDataset" \
+    --db-label "PUBMED768D400K-IVF" \
+    --custom-case-name PUBMED768D400K \
+    --custom-dataset-name PUBMED768D400K \
+    --custom-dataset-dir "" \
+    --custom-dataset-size 400335 \
+    --custom-dataset-dim 768 \
+    --custom-dataset-file-count 1 \
+    --custom-dataset-with-gt \
+    --skip-custom-dataset-use-shuffled \
+    --eval-mode mm \
+    --train-centroids True \
+    --is-vct True \
+    --centroids-path "./centroids/embeddinggemma-300m/centroids.npy" \
+    --vct-path "./centroids/embeddinggemma-300m/tree_info.pkl" \
+    --nlist 32768 \
+    --nprobe 6
+```
+
+### Run VectorDBBench Case
 
 ```bash
 # flat
@@ -125,7 +155,7 @@ python -m vectordb_bench.cli.vectordbbench envectorflat \
     --db-label "Performance1536D500K-FLAT"
 
 # ivf: IVF-FLAT with random centroids
-export NUM_PER_BATCH=500000 # set to the database size for efficiency
+export NUM_PER_BATCH=500000  # set database size for efficiency
 python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --uri "localhost:50050" \
     --case-type "Performance1536D500K" \
@@ -143,28 +173,9 @@ python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --centroids-path "./centroids/kmeans_centroids.npy" \
     --nlist 250 \
     --nprobe 6
-
-# ivf-gas: IVF-FLAT with our ANN (GAS)
-export NUM_PER_BATCH=500000 # set to the database size for efficiency
-python -m vectordb_bench.cli.vectordbbench envectorivfflat \
-    --uri "localhost:50050" \
-    --case-type "PerformanceCustomDataset" \
-    --db-label "PUBMED768D400K-IVF" \
-    --custom-case-name PUBMED768D400K \
-    --custom-dataset-name PUBMED768D400K \
-    --custom-dataset-dir "" \
-    --custom-dataset-size 400335 \
-    --custom-dataset-dim 768 \
-    --custom-dataset-file-count 1 \
-    --custom-dataset-with-gt \
-    --skip-custom-dataset-use-shuffled \
-    --train-centroids True \
-    --is-vct True \
-    --centroids-path "./centroids/embeddinggemma-300m/centroids.npy" \
-    --vct-path "./centroids/embeddinggemma-300m/tree_info.pkl" \
-    --nlist 32768 \
-    --nprobe 6
 ```
+
+Note that the benchmark provided by VectorDBBench, including Performance1536D500K, uses **unknown** embedding model (just notified as openai's one), we cannot use our IVF-GAS approach for ANN.
 
 ### CLI Options
 
@@ -180,10 +191,10 @@ ANN Options for enVector
 - `--nlist`: Number of coarse clusters for IVF_FLAT
 - `--nprobe`: Number of clusters to scan during search for IVF_FLAT
 - `--train-centroids`: whether to use trained centroids for IVF_FLAT
-- `--centroids-path`: path to the trained centorids
+- `--centroids-path`: path to the trained centroids
 - `--is-vct`: whether to use VCT approach for IVF_GAS
 - `--vct-path`: path to the trained VCT metadata for IVF_GAS
 
 Benchmark Options:
-    follows convections of VectorDBBench, 
+    follows conventions of VectorDBBench, 
     see details in [VectorDBBench Options](https://github.com/zilliztech/VectorDBBench?tab=readme-ov-file#custom-dataset-for-performance-case)
