@@ -106,9 +106,47 @@ export NUM_PER_BATCH=4096
 
 ## Run Benchmark
 
-Refer to `./scripts/run_benchmark.sh` or `./scripts/envector_benchmark_config.yml` for benchmarks with enVector with ANN (VCT), or use the following command:
+Run the provided shell scripts (`./scripts/run_benchmark.sh`) as the following:
 
 ```bash
+./scripts/run_benchmark.sh --type flat     # FLAT
+./scripts/run_benchmark.sh --type ivf      # IVF
+./scripts/run_benchmark.sh --type ivf-gas  # Our ANN (GAS)
+```
+
+For more details, please refer to `./scripts/run_benchmark.sh` or `./scripts/envector_benchmark_config.yml` for benchmarks with enVector with ANN (VCT). Or you can use the following command:
+
+```bash
+# FLAT
+python -m vectordb_bench.cli.vectordbbench envectorflat \
+    --uri "localhost:50050" \
+    --case-type "Performance1536D500K" \
+    --db-label "Performance1536D500K-FLAT" \
+    --eval-mode mm
+
+# IVF-FLAT
+python -m vectordb_bench.cli.vectordbbench envectorivfflat \
+    --uri "localhost:50050" \
+    --case-type "Performance1536D500K" \
+    --db-label "Performance1536D500K-IVF-FLAT" \
+    --eval-mode mm \
+    --train-centroids False \  # random centroids
+    --nlist 250 \
+    --nprobe 6
+
+# IVF-FLAT with trained centroids via k-means
+export NUM_PER_BATCH=500000 # set to the database size for efficiency with IVF_FLAT
+python -m vectordb_bench.cli.vectordbbench envectorivfflat \
+    --uri "localhost:50050" \
+    --case-type "Performance1536D500K" \
+    --db-label "Performance1536D500K-IVF-FLAT" \
+    --eval-mode mm \
+    --train-centroids True \
+    --centroids-path "./centroids/kmeans_centroids.npy" \
+    --nlist 250 \
+    --nprobe 6
+
+# IVF-GAS
 export NUM_PER_BATCH=500000 # set to the database size for efficiency with IVF_FLAT
 python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --uri "localhost:50050" \
@@ -130,3 +168,4 @@ python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --nlist 32768 \
     --nprobe 6
 ```
+
