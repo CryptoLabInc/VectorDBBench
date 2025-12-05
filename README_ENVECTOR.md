@@ -145,7 +145,8 @@ python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --nprobe 6
 ```
 
-Note that, `NUM_PER_BATCH` is set to the database size when using IVF-based index for enVector.
+Note that, **`NUM_PER_BATCH` should be set to the database** size when using IVF-based ANN index for enVector currently.
+We will support adjustable `NUM_PER_BATCH` for ANN soon.
 
 ## Run VectorDBBench Benchmark
 
@@ -178,8 +179,6 @@ python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     --nlist 250 \
     --nprobe 6
 ```
-
-Note that, the benchmark provided by VectorDBBench, including Performance1536D500K, uses **unknown** embedding model (just notified as openai's one), we cannot use our GAS approach for ANN.
 
 ### CLI Options
 
