@@ -1,6 +1,8 @@
-# enVector with ANN (GAS) in VectorDBBench
+# enVector in VectorDBBench
 
-The guide on how to use enVector with ANN index in VectorDBBench is available in [README_ENVECTOR.md](README_ENVECTOR.md).
+**Quick start:** The guide on how to use **enVector** in VectorDBBench is available in :
+
+👉 [README_ENVECTOR.md](README_ENVECTOR.md).
 
 The followings are the original contents of README in VectorDBBench:
 

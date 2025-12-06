@@ -7,8 +7,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-import es2
 import numpy as np
+import pyenvector as ev
 
 from vectordb_bench.backend.filter import Filter, FilterOp
 
@@ -51,12 +51,12 @@ class EnVector(VectorDB):
         self._vector_index_name = "vector_idx"
         self._scalar_id_index_name = "id_sort_idx"
         self._scalar_labels_index_name = "labels_idx"
-        self.col: es2.Index | None = None
+        self.col: ev.Index | None = None
 
         self.is_vct: bool = False
         self.vct_params: dict[str, Any] = {}
 
-        es2.init(
+        ev.init(
             address=self.db_config.get("uri"),
             key_path=self.db_config.get("key_path"),
             key_id=self.db_config.get("key_id"),
@@ -64,8 +64,8 @@ class EnVector(VectorDB):
         )
         if drop_old:
             log.info(f"{self.name} client drop_old index: {self.collection_name}")
-            if self.collection_name in es2.get_index_list():
-                es2.drop_index(self.collection_name)
+            if self.collection_name in ev.get_index_list():
+                ev.drop_index(self.collection_name)
 
         # Create the collection
         log.info(f"{self.name} create index: {self.collection_name}")
@@ -73,10 +73,10 @@ class EnVector(VectorDB):
         index_kwargs = dict(kwargs)
         self._ensure_index(dim, index_kwargs)
 
-        es2.disconnect()
+        ev.disconnect()
 
     def _ensure_index(self, dim: int, index_kwargs: dict[str, Any]):
-        if self.collection_name in es2.get_index_list():
+        if self.collection_name in ev.get_index_list():
             log.info(f"{self.name} index {self.collection_name} already exists, skip creating")
             self.is_vct = self.case_config.index_param().get("is_vct", False)
             log.debug(f"IS_VCT: {self.is_vct}")
@@ -94,7 +94,7 @@ class EnVector(VectorDB):
         if index_type == "IVF_FLAT":
             self._adjust_batch_size()
 
-        es2.create_index(
+        ev.create_index(
             index_name=self.collection_name,
             dim=dim,
             key_path=self.db_config.get("key_path"),
@@ -146,16 +146,16 @@ class EnVector(VectorDB):
             >>>     self.insert_embeddings()
             >>>     self.search_embedding()
         """
-        es2.init(
+        ev.init(
             address=self.db_config.get("uri"),
             key_path=self.db_config.get("key_path"),
             key_id=self.db_config.get("key_id"),
             eval_mode=self.case_config.eval_mode,
         )
         try:
-            self.col = es2.Index(self.collection_name)
+            self.col = ev.Index(self.collection_name)
             if self.is_vct:
-                log.debug(f"VCT: {self.col.index_config.index_param.index_params['virtual_cluster']}")
+                log.debug(f"VCT: {self.col.index_config.index_param.index_params.get('virtual_cluster')}")
                 is_vct = self.case_config.index_param().get("is_vct", False)
                 assert self.is_vct == is_vct, "is_vct mismatch"
                 vct_path = self.case_config.index_param().get("vct_path", None)
@@ -163,7 +163,7 @@ class EnVector(VectorDB):
             yield
         finally:
             self.col = None
-            es2.disconnect()
+            ev.disconnect()
 
     def create_index(self):
         pass
@@ -193,8 +193,6 @@ class EnVector(VectorDB):
         # use the first insert_embeddings to init collection
         assert self.col is not None
         assert len(embeddings) == len(metadata)
-
-        log.debug(f"IS_VCT: {self.is_vct}")
 
         insert_count = 0
         try:
