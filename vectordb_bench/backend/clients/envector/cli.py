@@ -15,6 +15,8 @@ DBTYPE = DB.EnVector
 
 
 class EnVectorTypedDict(TypedDict):
+    """enVector common parameters"""
+
     uri: Annotated[
         str,
         click.option("--uri", type=str, help="uri connection string", required=True),
@@ -22,6 +24,10 @@ class EnVectorTypedDict(TypedDict):
     eval_mode: Annotated[
         str,
         click.option("--eval-mode", help="Evaluation mode", type=click.Choice(["mm", "rmp"]), default="mm"),
+    ]
+    index_name: Annotated[
+        str,
+        click.option("--index-name", help="Index name", type=str, default="vdbbench"),
     ]
 
 
@@ -39,6 +45,7 @@ def EnVectorFlat(**parameters: Unpack[EnVectorFlatIndexTypedDict]):
             db_label=parameters["db_label"],
             uri=SecretStr(parameters["uri"]),
             eval_mode=parameters["eval_mode"],
+            collection_name=parameters["index_name"],
             index_params={},
         ),
         db_case_config=FlatIndexConfig(),
@@ -47,6 +54,8 @@ def EnVectorFlat(**parameters: Unpack[EnVectorFlatIndexTypedDict]):
 
 
 class EnVectorIVFFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict):
+    """IVF-FLAT index specific parameters"""
+
     nlist: Annotated[
         int,
         click.option("--nlist", type=int, help="nlist for IVF index", default=250),
@@ -63,14 +72,6 @@ class EnVectorIVFFlatIndexTypedDict(CommonTypedDict, EnVectorTypedDict):
         str,
         click.option("--centroids-path", type=str, help="path to centroids for IVF index", default=None),
     ]
-    is_vct: Annotated[
-        bool,
-        click.option("--is-vct", type=bool, help="whether use VCT index", default=False),
-    ]
-    vct_path: Annotated[
-        str,
-        click.option("--vct-path", type=str, help="path to VCT index file", default=None),
-    ]
 
 
 @cli.command(name="envectorivfflat")
@@ -84,6 +85,7 @@ def EnVectorIVFFlat(**parameters: Unpack[EnVectorIVFFlatIndexTypedDict]):
             db_label=parameters["db_label"],
             uri=SecretStr(parameters["uri"]),
             eval_mode=parameters["eval_mode"],
+            collection_name=parameters["index_name"],
             index_params={"nlist": parameters["nlist"], "nprobe": parameters["nprobe"]},
         ),
         db_case_config=IVFFlatIndexConfig(
@@ -91,8 +93,33 @@ def EnVectorIVFFlat(**parameters: Unpack[EnVectorIVFFlatIndexTypedDict]):
             nprobe=parameters["nprobe"],
             train_centroids=parameters["train_centroids"],
             centroids_path=parameters["centroids_path"],
-            is_vct=parameters["is_vct"],
-            vct_path=parameters["vct_path"],
+        ),
+        **parameters,
+    )
+
+
+class EnVectorIVFGASIndexTypedDict(CommonTypedDict, EnVectorIVFFlatIndexTypedDict): ...
+
+
+@cli.command(name="envectorivfgas")
+@click_parameter_decorators_from_typed_dict(EnVectorIVFGASIndexTypedDict)
+def EnVectorIVFGAS(**parameters: Unpack[EnVectorIVFGASIndexTypedDict]):
+    from .config import EnVectorConfig, IVFGASIndexConfig
+
+    run(
+        db=DBTYPE,
+        db_config=EnVectorConfig(
+            db_label=parameters["db_label"],
+            uri=SecretStr(parameters["uri"]),
+            eval_mode=parameters["eval_mode"],
+            collection_name=parameters["index_name"],
+            index_params={"nlist": parameters["nlist"], "nprobe": parameters["nprobe"]},
+        ),
+        db_case_config=IVFGASIndexConfig(
+            nlist=parameters["nlist"],
+            nprobe=parameters["nprobe"],
+            train_centroids=parameters["train_centroids"],
+            centroids_path=parameters["centroids_path"],
         ),
         **parameters,
     )

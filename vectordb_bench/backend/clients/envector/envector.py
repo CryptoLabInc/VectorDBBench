@@ -1,7 +1,6 @@
 """Wrapper around the EnVector vector database over VectorDB"""
 
 import logging
-import os
 from collections.abc import Iterable
 from contextlib import contextmanager
 from pathlib import Path
@@ -42,8 +41,6 @@ class EnVector(VectorDB):
         self.case_config = db_case_config
         self.collection_name = collection_name
 
-        self.batch_size = 128 * 32  # default batch size for insertions, can be modified for IVF_FLAT
-
         self._primary_field = "pk"
         self._scalar_id_field = "id"
         self._scalar_label_field = "label"
@@ -53,46 +50,50 @@ class EnVector(VectorDB):
         self._scalar_labels_index_name = "labels_idx"
         self.col: ev.Index | None = None
 
-        self.is_vct: bool = False
-        self.vct_params: dict[str, Any] = {}
-
+        # Initialize the EnVector client
         ev.init(
             address=self.db_config.get("uri"),
             key_path=self.db_config.get("key_path"),
             key_id=self.db_config.get("key_id"),
             eval_mode=self.case_config.eval_mode,
+            preset="ip1" if self.case_config.eval_mode == "mm" else "ip",
         )
+
+        # Drop old index if specified
         if drop_old:
             log.info(f"{self.name} client drop_old index: {self.collection_name}")
             if self.collection_name in ev.get_index_list():
                 ev.drop_index(self.collection_name)
 
-        # Create the collection
-        log.info(f"{self.name} create index: {self.collection_name}")
+        # Check index type
+        index_param = self.case_config.index_param().get("params", {})
+        index_type = index_param.get("index_type", "FLAT")
+        log.debug(f"Index Type: {index_type}")
 
+        # Ensure the index exists or create it
         index_kwargs = dict(kwargs)
         self._ensure_index(dim, index_kwargs)
 
         ev.disconnect()
 
     def _ensure_index(self, dim: int, index_kwargs: dict[str, Any]):
+        # Check if the collection already exists
         if self.collection_name in ev.get_index_list():
             log.info(f"{self.name} index {self.collection_name} already exists, skip creating")
-            self.is_vct = self.case_config.index_param().get("is_vct", False)
-            log.debug(f"IS_VCT: {self.is_vct}")
             return
+        # Create the index if it does not exist
         self._create_index(dim, index_kwargs)
 
     def _create_index(self, dim: int, index_kwargs: dict[str, Any]):
+        # Create the collection
+        log.info(f"{self.name} create index: {self.collection_name}")
+
         index_param = self.case_config.index_param().get("params", {})
         index_type = index_param.get("index_type", "FLAT")
         train_centroids = self.case_config.index_param().get("train_centroids", False)
 
-        if index_type == "IVF_FLAT" and train_centroids:
+        if index_type in ["IVF_FLAT", "IVF_VCT"] and train_centroids:
             self._configure_centroids(index_param, index_kwargs)
-
-        if index_type == "IVF_FLAT":
-            self._adjust_batch_size()
 
         ev.create_index(
             index_name=self.collection_name,
@@ -105,38 +106,20 @@ class EnVector(VectorDB):
         )
 
     def _configure_centroids(self, index_param: dict[str, Any], index_kwargs: dict[str, Any]):
+        # Load centroids
         centroid_path = self.case_config.index_param().get("centroids_path", None)
-        self.is_vct = self.case_config.index_param().get("is_vct", False)
-        log.debug(f"IS_VCT: {self.is_vct}")
-
         if centroid_path is None:
-            raise ValueError("Centroids path must be provided for IVF_FLAT index training.")
+            raise ValueError("Centroids path must be provided for IVF index training.")
 
         centroid_file = Path(centroid_path)
         if not centroid_file.exists():
-            msg = f"Centroid file {centroid_path} not found for IVF_FLAT index training."
+            msg = f"Centroid file {centroid_path} not found for IVF index training."
             raise FileNotFoundError(msg)
 
-        log.debug(f"Centroids: {centroid_path}")
         centroids = np.load(centroid_file)
-        log.info(f"{self.name} loaded centroids from {centroid_path} for IVF_FLAT index training.")
+        log.info(f"{self.name} loaded centroids from {centroid_path} for IVF index training.")
 
         index_param["centroids"] = centroids.tolist()
-
-        if self.is_vct:
-            vct_path = self.case_config.index_param().get("vct_path", None)
-            log.debug(f"VCT: {vct_path}")
-            index_param["virtual_cluster"] = True
-            index_kwargs["tree_description"] = vct_path
-            self.is_vct = True
-            log.info(f"{self.name} VCT parameters set for IVF_FLAT index creation.")
-
-    def _adjust_batch_size(self):
-        self.batch_size = int(os.environ.get("NUM_PER_BATCH", "500000"))
-        log.debug(
-            f"Set EnVector IVF_FLAT insert batch size to {self.batch_size}. "
-            f"This should be the size of dataset for better performance when IVF_FLAT."
-        )
 
     @contextmanager
     def init(self):
@@ -151,15 +134,10 @@ class EnVector(VectorDB):
             key_path=self.db_config.get("key_path"),
             key_id=self.db_config.get("key_id"),
             eval_mode=self.case_config.eval_mode,
+            preset="ip1" if self.case_config.eval_mode == "mm" else "ip",
         )
         try:
             self.col = ev.Index(self.collection_name)
-            if self.is_vct:
-                log.debug(f"VCT: {self.col.index_config.index_param.index_params.get('virtual_cluster')}")
-                is_vct = self.case_config.index_param().get("is_vct", False)
-                assert self.is_vct == is_vct, "is_vct mismatch"
-                vct_path = self.case_config.index_param().get("vct_path", None)
-                self.col._load_virtual_cluster_from_pkl(vct_path)
             yield
         finally:
             self.col = None
@@ -194,19 +172,17 @@ class EnVector(VectorDB):
         assert self.col is not None
         assert len(embeddings) == len(metadata)
 
+        request_ids = kwargs.pop("request_ids", [])  # extract request_ids from kwargs for tracking insert operations
+
         insert_count = 0
         try:
-            for batch_start_offset in range(0, len(embeddings), self.batch_size):
-                batch_end_offset = min(batch_start_offset + self.batch_size, len(embeddings))
-                meta = [str(m) for m in metadata[batch_start_offset:batch_end_offset]]
-                vectors = embeddings[batch_start_offset:batch_end_offset]
-                if self.is_vct:
-                    self.col.insert_vct(vectors, meta)
-                else:
-                    self.col.insert(vectors, meta)
-                insert_count += len(vectors)
+            metadata = list(map(str, metadata))
+            log.debug(f"Inserting {len(embeddings)} embeddings...")
+            self.col.insert(embeddings, metadata, request_ids=request_ids, await_completion=False)
+            insert_count += len(embeddings)
+            log.debug(f"Insert successful, count={insert_count}")
         except Exception as e:
-            log.info(f"Failed to insert data: {e}")
+            log.exception("Failed to insert data")
             return insert_count, e
         return insert_count, None
 
@@ -223,22 +199,13 @@ class EnVector(VectorDB):
         assert self.col is not None
 
         try:
-            if self.is_vct:
-                res = self.col.search_vct(
-                    query=query,
-                    top_k=k,
-                    output_fields=["metadata"],
-                    search_params=self.case_config.search_param().get("search_params", {}),
-                )
-
-            else:
-                # Perform the search.
-                res = self.col.search(
-                    query=query,
-                    top_k=k,
-                    output_fields=["metadata"],
-                    search_params=self.case_config.search_param().get("search_params", {}),
-                )
+            # Perform the search.
+            res = self.col.search(
+                query=query,
+                top_k=k,
+                output_fields=["metadata"],
+                search_params=self.case_config.search_param().get("search_params", {}),
+            )
 
             # Handle empty results
             if not res or len(res) == 0:

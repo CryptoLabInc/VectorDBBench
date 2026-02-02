@@ -1,21 +1,24 @@
-import os
-import wget
+"""
+Prepare dataset and ground truth neighbors for benchmarking.
+"""
+
 import argparse
+import os
+
+import faiss
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
+import wget
 from datasets import load_dataset
 
-import faiss
 
 def get_args():
-    parser = argparse.ArgumentParser(
-        description="Prepare dataset and ground truth neighbors for benchmarking."
-    )
+    parser = argparse.ArgumentParser(description="Prepare dataset and ground truth neighbors for benchmarking.")
     parser.add_argument(
-        "-d", "--dataset-name",
+        "-d",
+        "--dataset-name",
         type=str,
         default="cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m",
         help="Huggingface dataset name to download.",
@@ -27,11 +30,12 @@ def get_args():
     parser.add_argument(
         "--dataset-dir",
         type=str,
-        default="./dataset/pubmed768d400k",
-        help="Dataset directory to save the dataset and neighbors.",
+        default=os.path.join(os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset"), "pubmed768d400k"),
+        help="Dataset directory to save the dataset and neighbors. Default: 'pubmed768d400k' in DATASET_LOCAL_DIR.",
     )
     parser.add_argument(
-        "-e", "--embedding-model",
+        "-e",
+        "--embedding-model",
         type=str,
         default="embeddinggemma-300m",
         help="Embedding model name to download centroids for.",
@@ -44,22 +48,21 @@ def get_args():
     )
     return parser.parse_args()
 
-def download_dataset(
-    dataset_name: str, 
-    output_dir: str = "./dataset/pubmed768d400k"
-) -> None:
+
+def download_dataset(dataset_name: str, output_dir: str = "./dataset/pubmed768d400k") -> None:
     """Download dataset from Huggingface and save as Parquet files."""
     # load dataset
     ds = load_dataset(dataset_name)
     train = ds["train"].to_pandas()
     test = ds["test"].to_pandas()
-    
+
     # write to parquet
     train_table = pa.Table.from_pandas(train)
     pq.write_table(train_table, f"{output_dir}/train.parquet")
 
     test_table = pa.Table.from_pandas(test)
     pq.write_table(test_table, f"{output_dir}/test.parquet")
+
 
 def prepare_neighbors(
     data_dir: str = "./dataset/pubmed768d400k",
@@ -82,29 +85,28 @@ def prepare_neighbors(
     print(distances.shape, indices.shape)
 
     # save flat search result as neighbors
-    df = pd.DataFrame({
-        "id": np.arange(len(indices)),
-        "neighbors_id": indices.tolist()
-    })
-    
+    df = pd.DataFrame({"id": np.arange(len(indices)), "neighbors_id": indices.tolist()})
+
     table = pa.Table.from_pandas(df)
     pq.write_table(table, f"{data_dir}/neighbors.parquet")
 
+
 def download_centroids(embedding_model: str, dataset_dir: str) -> None:
     """Download pre-computed centroids and tree info for GAS VCT index."""
-    
+
     if embedding_model != "embeddinggemma-300m":
         raise ValueError(f"Centroids for {embedding_model} currently not available.")
 
-    # https://huggingface.co/datasets/cryptolab-playground/gas-centroids
+    # BASE URL: https://huggingface.co/datasets/cryptolab-playground/gas-centroids
     dataset_link = f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/main/{embedding_model}"
-    
+
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
     wget.download(f"{dataset_link}/centroids.npy", out=os.path.join(dataset_dir, embedding_model, "centroids.npy"))
     wget.download(f"{dataset_link}/tree_info.pkl", out=os.path.join(dataset_dir, embedding_model, "tree_info.pkl"))
-    
-    
+    print(f"\nDownloaded centroids and tree info to {os.path.join(dataset_dir, embedding_model)}")
+
+
 if __name__ == "__main__":
     args = get_args()
     os.makedirs(args.dataset_dir, exist_ok=True)

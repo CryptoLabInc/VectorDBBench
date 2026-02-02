@@ -1,0 +1,4 @@
+wget==3.2
+pandas==2.3.3
+pyarrow==22.0.0
+faiss-cpu==1.13.2
