@@ -4,9 +4,12 @@ from ..api import DBCaseConfig, DBConfig, IndexType, MetricType
 
 
 class EnVectorConfig(DBConfig):
+    """enVector common configuration"""
+
     uri: SecretStr = SecretStr("http://localhost:50050")
     key_path: str = "keys"
     key_id: str = "default_key"
+    collection_name: str = "vdbbench"
 
     def to_dict(self) -> dict:
         return {
@@ -17,11 +20,12 @@ class EnVectorConfig(DBConfig):
 
 
 class EnVectorIndexConfig(BaseModel):
-    """Base config for envector"""
+    """Base index config for envector"""
 
     index: IndexType
-    metric_type: MetricType | None = None
+    metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
     use_partition_key: bool = True  # for label-filter
+    eval_mode: str = "mm"  # default eval_mode
 
     @property
     def is_gpu_index(self) -> bool:
@@ -42,9 +46,9 @@ class EnVectorIndexConfig(BaseModel):
 
 
 class FlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
+    """enVector FLAT index configuration"""
+
     index: IndexType = IndexType.Flat
-    metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
-    eval_mode: str = "mm"  # default eval_mode
 
     def index_param(self) -> dict:
         return {
@@ -62,15 +66,13 @@ class FlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
 
 
 class IVFFlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
+    """enVector IVF-FLAT index configuration"""
+
     index: IndexType = IndexType.IVFFlat
-    metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
     nlist: int = 0
     nprobe: int = 0
-    eval_mode: str = "mm"
     train_centroids: bool = False  # whether to train centroids before inserting data
     centroids_path: str | None = None  # path to centroids file
-    is_vct: bool = False  # whether use VCT index
-    vct_path: str | None = None  # path to VCT index file
 
     def index_param(self) -> dict:
         return {
@@ -80,8 +82,6 @@ class IVFFlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
             "params": {"index_type": "IVF_FLAT", "nlist": self.nlist, "default_nprobe": self.nprobe},
             "train_centroids": self.train_centroids,
             "centroids_path": self.centroids_path,
-            "is_vct": self.is_vct,
-            "vct_path": self.vct_path,
         }
 
     def search_param(self) -> dict:
@@ -91,7 +91,19 @@ class IVFFlatIndexConfig(EnVectorIndexConfig, DBCaseConfig):
         }
 
 
+class IVFGASIndexConfig(IVFFlatIndexConfig):
+    """enVector IVF-GAS index configuration"""
+
+    index: IndexType = IndexType.IVFGAS
+
+    def index_param(self) -> dict:
+        index_param = super().index_param()
+        index_param["params"].update({"index_type": "IVF_VCT"})
+        return index_param
+
+
 _envector_case_config = {
     IndexType.Flat: FlatIndexConfig,
     IndexType.IVFFlat: IVFFlatIndexConfig,
+    IndexType.IVFGAS: IVFGASIndexConfig,
 }

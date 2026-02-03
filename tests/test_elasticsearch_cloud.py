@@ -6,7 +6,6 @@ from vectordb_bench.models import (
 )
 import numpy as np
 
-
 log = logging.getLogger(__name__)
 
 cloud_id = ""
@@ -41,9 +40,7 @@ class TestModels:
         with es.init():
             res = es.insert_embeddings(embeddings=embeddings, metadata=range(count))
             # bulk_insert return
-            assert (
-                res == count
-            ), f"the return count of bulk insert ({res}) is not equal to count ({count})"
+            assert res == count, f"the return count of bulk insert ({res}) is not equal to count ({count})"
 
             # indice_count return
             es.client.indices.refresh()
@@ -61,9 +58,7 @@ class TestModels:
 
             res = es.search_embedding(query=q, k=100)
             log.info(f"search_results_id: {res}")
-            assert (
-                res[0] == test_id
-            ), f"the most nearest neighbor ({res[0]}) id is not test_id ({test_id})"
+            assert res[0] == test_id, f"the most nearest neighbor ({res[0]}) id is not test_id ({test_id})"
 
         # search with filters
         with es.init():
@@ -71,13 +66,9 @@ class TestModels:
             log.info(f"test_id: {test_id}")
             q = embeddings[test_id]
 
-            res = es.search_embedding(
-                query=q, k=100, filters={"id": count * filter_rate}
-            )
+            res = es.search_embedding(query=q, k=100, filters={"id": count * filter_rate})
             log.info(f"search_results_id: {res}")
-            assert (
-                res[0] == test_id
-            ), f"the most nearest neighbor ({res[0]}) id is not test_id ({test_id})"
+            assert res[0] == test_id, f"the most nearest neighbor ({res[0]}) id is not test_id ({test_id})"
             isFilter = True
             for id in res:
                 if id < count * filter_rate:

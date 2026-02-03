@@ -21,25 +21,21 @@ class PgVectorConfigDict(TypedDict):
 
 
 class PgVectorConfig(DBConfig):
-    user_name: SecretStr = "postgres"
+    user_name: SecretStr = SecretStr("postgres")
     password: SecretStr
     host: str = "localhost"
     port: int = 5432
-    db_name: str = "vectordb"
-    table_name: str = "vdbbench_table_test"
+    db_name: str
 
     def to_dict(self) -> PgVectorConfigDict:
-        user_str = self.user_name.get_secret_value() if isinstance(self.user_name, SecretStr) else self.user_name
+        user_str = self.user_name.get_secret_value()
         pwd_str = self.password.get_secret_value()
         return {
-            "connect_config": {
-                "host": self.host,
-                "port": self.port,
-                "dbname": self.db_name,
-                "user": user_str,
-                "password": pwd_str,
-            },
-            "table_name": self.table_name,
+            "host": self.host,
+            "port": self.port,
+            "dbname": self.db_name,
+            "user": user_str,
+            "password": pwd_str,
         }
 
 
@@ -63,10 +59,6 @@ class PgVectorIndexConfig(BaseModel, DBCaseConfig):
     metric_type: MetricType | None = None
     create_index_before_load: bool = False
     create_index_after_load: bool = True
-    # Scan more of the index to get enough results for filter-cases.
-    # Options: "strict_order" (order by distance), "relaxed_order" (slightly out of order but better recall)
-    # See: https://github.com/pgvector/pgvector?tab=readme-ov-file#iterative-index-scans
-    iterative_scan: str = "relaxed_order"
 
     def parse_metric(self) -> str:
         d = {
@@ -213,7 +205,7 @@ class PgVectorIVFFlatConfig(PgVectorIndexConfig):
         }
 
     def session_param(self) -> PgVectorSessionCommands:
-        session_parameters = {"ivfflat.probes": self.probes, "ivfflat.iterative_scan": self.iterative_scan}
+        session_parameters = {"ivfflat.probes": self.probes}
         return {"session_options": self._optionally_build_set_options(session_parameters)}
 
 
@@ -263,7 +255,7 @@ class PgVectorHNSWConfig(PgVectorIndexConfig):
         }
 
     def session_param(self) -> PgVectorSessionCommands:
-        session_parameters = {"hnsw.ef_search": self.ef_search, "hnsw.iterative_scan": self.iterative_scan}
+        session_parameters = {"hnsw.ef_search": self.ef_search}
         return {"session_options": self._optionally_build_set_options(session_parameters)}
 
 

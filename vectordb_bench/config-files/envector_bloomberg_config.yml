@@ -1,0 +1,46 @@
+# Custom Case
+_base_dataset: &base_dataset
+  case_type: PerformanceCustomDataset
+  custom_case_name: BLOOMBERG768D368K
+  custom_case_description: BLOOMBERG768D368K benchmark (768D, 368K vectors)
+  custom_dataset_name: BLOOMBERG768D368K
+  custom_dataset_dir: ""
+  custom_dataset_size: 368816
+  custom_dataset_dim: 768
+  custom_dataset_file_count: 1
+  custom_dataset_use_shuffled: false
+  custom_dataset_with_gt: true
+  k: 10
+
+# envector server settings
+_base_envector: &base_envector
+  uri: localhost:50050
+  eval_mode: mm
+  drop_old: true
+  load: true
+
+# FLAT
+envectorflat:
+  <<: [*base_dataset, *base_envector]
+  index_name: bloomberg_flat
+  db_label: BLOOMBERG768D368K-FLAT
+
+# IVF-FLAT with trained k-means centroids
+envectorivfflat:
+  <<: [*base_dataset, *base_envector]
+  index_name: bloomberg_ivfflat
+  db_label: BLOOMBERG768D368K-IVFFLAT
+  nlist: 128
+  nprobe: 6
+  train_centroids: true
+  centroids_path: bloomberg/centroids/centroids_128.npy
+  
+# GAS: enVector-customized ANN
+envectorivfgas:
+  <<: [*base_dataset, *base_envector]
+  index_name: bloomberg_ivfgas
+  db_label: BLOOMBERG768D368K-IVFGAS
+  nlist: 32768
+  nprobe: 6
+  train_centroids: true
+  centroids_path: centroids/embeddinggemma-300m/centroids.npy

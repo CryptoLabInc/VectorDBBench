@@ -1705,17 +1705,6 @@ CaseConfigParamInput_REFRESH_INTERVAL_AWSOpensearch = CaseConfigInput(
     inputConfig={"value": "60s", "placeholder": "e.g. 30s, 1m"},
 )
 
-CaseConfigParamInput_REPLICATION_TYPE_AWSOpensearch = CaseConfigInput(
-    label=CaseConfigParamType.replication_type,
-    displayLabel="Replication Type",
-    inputHelp="Replication strategy: DOCUMENT (default) or SEGMENT",
-    inputType=InputType.Option,
-    inputConfig={
-        "options": ["DOCUMENT", "SEGMENT"],
-        "default": "DOCUMENT",
-    },
-)
-
 MilvusLoadConfig = [
     CaseConfigParamInput_IndexType,
     CaseConfigParamInput_M,
@@ -1796,13 +1785,11 @@ ESPerformanceConfig = [
 AWSOpensearchLoadingConfig = [
     CaseConfigParamInput_EFConstruction_AWSOpensearch,
     CaseConfigParamInput_M_AWSOpensearch,
-    CaseConfigParamInput_REPLICATION_TYPE_AWSOpensearch,
 ]
 AWSOpenSearchPerformanceConfig = [
     CaseConfigParamInput_EFConstruction_AWSOpensearch,
     CaseConfigParamInput_M_AWSOpensearch,
     CaseConfigParamInput_EF_SEARCH_AWSOpensearch,
-    CaseConfigParamInput_REPLICATION_TYPE_AWSOpensearch,
 ]
 
 AliyunOpensearchLoadingConfig = []
@@ -1926,24 +1913,13 @@ AlloyDBPerformanceConfig = [
 ]
 
 AliyunElasticsearchLoadingConfig = [
-    CaseConfigParamInput_IndexType_ES,
-    CaseConfigParamInput_NumShards_ES,
-    CaseConfigParamInput_NumReplica_ES,
-    CaseConfigParamInput_RefreshInterval_ES,
     CaseConfigParamInput_EFConstruction_AliES,
     CaseConfigParamInput_M_AliES,
 ]
 AliyunElasticsearchPerformanceConfig = [
-    CaseConfigParamInput_IndexType_ES,
-    CaseConfigParamInput_NumShards_ES,
-    CaseConfigParamInput_NumReplica_ES,
-    CaseConfigParamInput_RefreshInterval_ES,
     CaseConfigParamInput_EFConstruction_AliES,
     CaseConfigParamInput_M_AliES,
     CaseConfigParamInput_NumCandidates_AliES,
-    CaseConfigParamInput_UseRescore_ES,
-    CaseConfigParamInput_OversampleRatio_ES,
-    CaseConfigParamInput_UseRouting_ES,
 ]
 
 MongoDBLoadingConfig = [
@@ -2108,7 +2084,6 @@ AWSOpensearchLoadingConfig = [
     CaseConfigParamInput_NUMBER_OF_REPLICAS_AWSOpensearch,
     CaseConfigParamInput_NUMBER_OF_INDEXING_CLIENTS_AWSOpensearch,
     CaseConfigParamInput_INDEX_THREAD_QTY_AWSOpensearch,
-    CaseConfigParamInput_REPLICATION_TYPE_AWSOpensearch,
     CaseConfigParamInput_INDEX_THREAD_QTY_DURING_FORCE_MERGE_AWSOpensearch,
 ]
 
@@ -2123,7 +2098,6 @@ AWSOpenSearchPerformanceConfig = [
     CaseConfigParamInput_NUMBER_OF_REPLICAS_AWSOpensearch,
     CaseConfigParamInput_NUMBER_OF_INDEXING_CLIENTS_AWSOpensearch,
     CaseConfigParamInput_INDEX_THREAD_QTY_AWSOpensearch,
-    CaseConfigParamInput_REPLICATION_TYPE_AWSOpensearch,
     CaseConfigParamInput_INDEX_THREAD_QTY_DURING_FORCE_MERGE_AWSOpensearch,
 ]
 

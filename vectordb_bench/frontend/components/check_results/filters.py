@@ -34,7 +34,6 @@ def getshownResults(
     st,
     results: list[TestResult],
     case_results_filter: Callable[[CaseResult], bool] = lambda x: True,
-    default_selected_task_labels: list[str] = [],
     **kwargs,
 ) -> list[CaseResult]:
     resultSelectOptions = [
@@ -48,7 +47,7 @@ def getshownResults(
         "Select the task results you need to analyze.",
         resultSelectOptions,
         # label_visibility="hidden",
-        default=default_selected_task_labels or resultSelectOptions,
+        default=resultSelectOptions,
     )
     selectedResult: list[CaseResult] = []
     for option in selectedResultSelectedOptions:

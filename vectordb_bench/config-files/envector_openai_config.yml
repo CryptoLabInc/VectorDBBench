@@ -1,0 +1,26 @@
+# FLAT
+envectorflat:
+  index_name: perf1536d500k_flat
+  uri: localhost:50050
+  eval_mode: mm
+  case_type: Performance1536D500K
+  db_label: Performance1536D500K-FLAT
+  k: 10
+  drop_old: true
+  load: true
+
+# IVF-FLAT with trained k-means centroids
+envectorivfflat:
+  index_name: perf1536d500k_ivfflat
+  uri: localhost:50050
+  eval_mode: mm
+  case_type: Performance1536D500K
+  db_label: Performance1536D500K-IVF
+  k: 10
+  nlist: 256
+  nprobe: 6
+  train_centroids: true
+  centroids_path: centroids/performance1536d500k/centroids_256.npy
+  drop_old: true
+  load: true
+  

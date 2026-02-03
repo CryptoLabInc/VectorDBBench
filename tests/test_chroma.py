@@ -6,7 +6,6 @@ from vectordb_bench.backend.clients.chroma.config import ChromaConfig
 import numpy as np
 import chromadb
 
-
 log = logging.getLogger(__name__)
 
 """ Tests for Chroma, assumes Chroma is running on localhost:8000, 
@@ -19,13 +18,11 @@ log = logging.getLogger(__name__)
     3. default port is 8000, default host is localhost"""
 
 
-
-dict = {} #Assumes chroma is acception connections on localhost:8000
-dict['name'] = "chroma"
-dict['host'] = "localhost"
-dict['port'] = 8000
-dict['password'] = "chroma"
-
+dict = {}  # Assumes chroma is acception connections on localhost:8000
+dict["name"] = "chroma"
+dict["host"] = "localhost"
+dict["port"] = 8000
+dict["password"] = "chroma"
 
 
 class TestChroma:
@@ -34,7 +31,6 @@ class TestChroma:
 
         dbcls = DB.Chroma.init_cls
         dbConfig = DB.Chroma.config_cls
-        
 
         dim = 16
         chrma = dbcls(
@@ -49,36 +45,28 @@ class TestChroma:
         filter_value = 0.9
         embeddings = [[np.random.random() for _ in range(dim)] for _ in range(count)]
 
-
         # insert
         with chrma.init():
-            #chrma.client.delete_collection("example2")
-            assert (chrma.client.heartbeat() is not None), "chroma client is not connected"
+            # chrma.client.delete_collection("example2")
+            assert chrma.client.heartbeat() is not None, "chroma client is not connected"
             res = chrma.insert_embeddings(embeddings=embeddings, metadata=range(count))
             # bulk_insert return
-            assert (
-                res[0] == count
-            ), f"the return count of bulk insert ({res}) is not equal to count ({count})"
+            assert res[0] == count, f"the return count of bulk insert ({res}) is not equal to count ({count})"
 
             # count entries in chroma database
             countRes = chrma.collection.count()
-            
-            assert (
-                countRes == count
-            ), f"the return count of redis client ({countRes}) is not equal to count ({count})"
+
+            assert countRes == count, f"the return count of redis client ({countRes}) is not equal to count ({count})"
 
         # search
         with chrma.init():
             test_id = np.random.randint(count)
-            #log.info(f"test_id: {test_id}")
+            # log.info(f"test_id: {test_id}")
             q = embeddings[test_id]
 
             res = chrma.search_embedding(query=q, k=100)
             print(res)
-            assert (
-                res[0] == int(test_id)
-            ), f"the most nearest neighbor ({res[0]}) id is not test_id ({int(test_id)}"
-            
+            assert res[0] == int(test_id), f"the most nearest neighbor ({res[0]}) id is not test_id ({int(test_id)}"
 
         # search with filters, assumes filter format {id: int, metadata: >=int}
         with chrma.init():
@@ -86,13 +74,8 @@ class TestChroma:
             test_id = np.random.randint(filter_value, count)
             q = embeddings[test_id]
 
-
-            res = chrma.search_embedding(
-                query=q, k=100, filters={"id": filter_value}
-            )
-            assert (
-                res[0] == int(test_id)
-            ), f"the most nearest neighbor ({res[0]}) id is not test_id ({test_id})"
+            res = chrma.search_embedding(query=q, k=100, filters={"id": filter_value})
+            assert res[0] == int(test_id), f"the most nearest neighbor ({res[0]}) id is not test_id ({test_id})"
             isFilter = True
             id_list = []
             for id in res:
@@ -101,5 +84,3 @@ class TestChroma:
                     isFilter = False
                     break
             assert isFilter, f"Filter not working, id_list: {id_list}"
-
-            

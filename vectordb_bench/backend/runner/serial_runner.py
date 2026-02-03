@@ -2,12 +2,14 @@ import concurrent
 import logging
 import math
 import multiprocessing as mp
+import os
 import time
 import traceback
 
 import numpy as np
 import psutil
 
+from vectordb_bench.backend.clients.envector.envector import EnVector
 from vectordb_bench.backend.dataset import DatasetManager
 from vectordb_bench.backend.filter import Filter, FilterOp, non_filter
 
@@ -19,6 +21,8 @@ from ..clients import api
 
 NUM_PER_BATCH = config.NUM_PER_BATCH
 LOAD_MAX_TRY_COUNT = config.LOAD_MAX_TRY_COUNT
+INSERT_TIMEOUT = max(int(os.environ.get("INSERT_TIMEOUT", "300")), config.LOAD_TIMEOUT_DEFAULT)
+INSERT_POLL_INTERVAL = int(os.environ.get("INSERT_POLL_INTERVAL", "60"))
 
 log = logging.getLogger(__name__)
 
@@ -55,16 +59,16 @@ class SerialInsertRunner:
         with self.db.init():
             log.info(f"({mp.current_process().name:16}) Start inserting embeddings in batch {config.NUM_PER_BATCH}")
             start = time.perf_counter()
+            request_ids = []
             for data_df in self.dataset:
                 all_metadata = data_df[self.dataset.data.train_id_field].tolist()
 
                 emb_np = np.stack(data_df[self.dataset.data.train_vector_field])
                 if self.normalize:
                     log.debug("normalize the 100k train data")
-                    all_embeddings = (emb_np / np.linalg.norm(emb_np, axis=1)[:, np.newaxis]).tolist()
+                    all_embeddings = emb_np / np.linalg.norm(emb_np, axis=1)[:, np.newaxis]
                 else:
-                    all_embeddings = emb_np.tolist()
-                del emb_np
+                    all_embeddings = emb_np
                 log.debug(f"batch dataset size: {len(all_embeddings)}, {len(all_metadata)}")
 
                 labels_data = None
@@ -73,11 +77,8 @@ class SerialInsertRunner:
                         labels_data = self.dataset.scalar_labels[self.filters.label_field][all_metadata].to_list()
                     else:
                         labels_data = data_df[self.filters.label_field].tolist()
-
                 insert_count, error = self.db.insert_embeddings(
-                    embeddings=all_embeddings,
-                    metadata=all_metadata,
-                    labels_data=labels_data,
+                    embeddings=all_embeddings, metadata=all_metadata, labels_data=labels_data, request_ids=request_ids
                 )
                 if error is not None:
                     self.retry_insert(
@@ -85,6 +86,7 @@ class SerialInsertRunner:
                         embeddings=all_embeddings,
                         metadata=all_metadata,
                         labels_data=labels_data,
+                        request_ids=request_ids,
                     )
 
                 assert insert_count == len(all_metadata)
@@ -92,10 +94,23 @@ class SerialInsertRunner:
                 if count % 100_000 == 0:
                     log.info(f"({mp.current_process().name:16}) Loaded {count} embeddings into VectorDB")
 
+            if isinstance(self.db, EnVector):
+                log.info(
+                    "Waiting for inserted rows to become searchable (Index Operation Status v0)... "
+                    f"(requests={len(request_ids)}, timeout={INSERT_TIMEOUT}s)"
+                )
+                self.db.col.indexer.wait_for_inserts_searchable(
+                    index_name=self.db.collection_name,
+                    request_ids=request_ids,
+                    timeout_s=INSERT_TIMEOUT,
+                    poll_interval_s=INSERT_POLL_INTERVAL,
+                )
+
             log.info(
                 f"({mp.current_process().name:16}) Finish loading all dataset into VectorDB, "
                 f"dur={time.perf_counter() - start}"
             )
+
             return count
 
     def endless_insert_data(self, all_embeddings: list, all_metadata: list, left_id: int = 0) -> int:

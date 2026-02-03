@@ -1,17 +1,9 @@
 import pytest
 import logging
-from vectordb_bench.models import (
-    TaskConfig, CaseConfig,
-    CaseResult, TestResult,
-    Metric, CaseType
-)
-from vectordb_bench.backend.clients import (
-    DB,
-    IndexType
-)
+from vectordb_bench.models import TaskConfig, CaseConfig, CaseResult, TestResult, Metric, CaseType
+from vectordb_bench.backend.clients import DB, IndexType
 
 from vectordb_bench import config
-
 
 log = logging.getLogger("vectordb_bench")
 
@@ -33,7 +25,7 @@ class TestModels:
         test_result.flush()
 
         with pytest.raises(ValueError):
-            result = TestResult.read_file('nosuchfile.json')
+            result = TestResult.read_file("nosuchfile.json")
 
     def test_test_result_read_write(self):
         result_dir = config.RESULTS_LOCAL_DIR

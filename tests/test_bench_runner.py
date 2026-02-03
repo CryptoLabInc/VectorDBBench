@@ -2,10 +2,15 @@ import time
 import logging
 from vectordb_bench.interface import BenchMarkRunner
 from vectordb_bench.models import (
-    DB, IndexType, CaseType, TaskConfig, CaseConfig,
+    DB,
+    IndexType,
+    CaseType,
+    TaskConfig,
+    CaseConfig,
 )
 
 log = logging.getLogger(__name__)
+
 
 class TestBenchRunner:
     def test_get_results(self):
@@ -17,7 +22,7 @@ class TestBenchRunner:
     def test_performance_case_whole(self):
         runner = BenchMarkRunner()
 
-        task_config=TaskConfig(
+        task_config = TaskConfig(
             db=DB.Milvus,
             db_config=DB.Milvus.config(),
             db_case_config=DB.Milvus.case_config_cls(index=IndexType.Flat)(),
@@ -32,7 +37,7 @@ class TestBenchRunner:
     def test_performance_case_clean(self):
         runner = BenchMarkRunner()
 
-        task_config=TaskConfig(
+        task_config = TaskConfig(
             db=DB.Milvus,
             db_config=DB.Milvus.config(),
             db_case_config=DB.Milvus.case_config_cls(index=IndexType.Flat)(),
@@ -44,7 +49,7 @@ class TestBenchRunner:
         runner.stop_running()
 
     def test_performance_case_no_error(self):
-        task_config=TaskConfig(
+        task_config = TaskConfig(
             db=DB.ZillizCloud,
             db_config=DB.ZillizCloud.config(uri="xxx", user="abc", password="1234"),
             db_case_config=DB.ZillizCloud.case_config_cls()(),
@@ -52,9 +57,10 @@ class TestBenchRunner:
         )
 
         t = task_config.copy()
-        d = t.json(exclude={'db_config': {'password', 'api_key'}})
+        d = t.json(exclude={"db_config": {"password", "api_key"}})
         log.info(f"{d}")
 
         import ujson
+
         loads = ujson.loads(d)
         log.info(f"{loads}")

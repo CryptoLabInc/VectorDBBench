@@ -14,6 +14,7 @@ class Performance100K99p(PerformanceCase):
     description: str = """This case tests the search performance of a vector database with a small dataset (<b>Cohere 100K vectors</b>, 768 dimensions) under a high filtering rate (<b>99% vectors</b>), at varying parallel levels.
 Results will show index building time, recall, and maximum QPS."""
 
+
 class Performance100K1p(PerformanceCase):
     case_id: CaseType = 100
     filter_rate: float | int | None = 0.01

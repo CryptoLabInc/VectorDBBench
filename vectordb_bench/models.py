@@ -29,8 +29,8 @@ class LoadTimeoutError(TimeoutError):
 
 
 class PerformanceTimeoutError(TimeoutError):
-    def __init__(self):
-        super().__init__("Performance case optimize timeout")
+    def __init__(self, message: str = "Performance case optimize timeout"):
+        super().__init__(message)
 
 
 class ConcurrencySlotTimeoutError(TimeoutError):
@@ -125,10 +125,8 @@ class CaseConfigParamType(Enum):
     use_rescore = "use_rescore"
     oversample_ratio = "oversample_ratio"
     use_routing = "use_routing"
-    replication_type = "replication_type"
 
     dataset_with_size_type = "dataset_with_size_type"
-    filter_rate = "filter_rate"
     insert_rate = "insert_rate"
     search_stages = "search_stages"
     concurrencies = "concurrencies"
