@@ -28,7 +28,7 @@ pip install pyenvector==1.3.0a1
 3. Run Benchmark
 
 ```bash
-# Run Benchmark
+# Run Benchmark (VectorDBBench built-in dataset)
 ./scripts/run_benchmark.sh --index-type FLAT --config-file envector_openai_config.yml
 ```
 
@@ -154,7 +154,7 @@ For the ANN benchmark, we provide two datasets via HuggingFace:
 - `FASHION512D200K`
 - `FOOD512D75K`
 
-Also, we provide centroids and tree metadata for the corresponding embedding model used in the ANN benchmark:
+Also, we provide centroids for the corresponding embedding model used in the ANN benchmark:
 - GAS Centroids: [cryptolab-playground/gas-centroids](https://huggingface.co/datasets/cryptolab-playground/gas-centroids)
 
 To prepare dataset, run the following command as example:
@@ -253,6 +253,35 @@ Benchmark Options:
 follows conventions of VectorDBBench, 
 see details in [VectorDBBench Options](https://github.com/zilliztech/VectorDBBench?tab=readme-ov-file#custom-dataset-for-performance-case).
 For example, if you have a custom directory for dataset, set `DATASET_LOCAL_DIR`.
+
+### enVector VectorDBBench Config File Options
+
+You can file the customized config files in `vectordb_bench/config-files` to use CLI options in more convinient way.
+
+```yaml
+# FLAT
+envectorflat:
+  index_name: test_index
+  uri: localhost:50050
+  eval_mode: mm
+  case_type: Performance1536D500K
+  db_label: Performance1536D500K-FLAT
+  k: 10
+  drop_old: true
+  load: true
+
+# IVF-FLAT with trained k-means centroids
+envectorivfflat:
+  ...
+  nlist: 256
+  nprobe: 6
+  train_centroids: true
+  centroids_path: centroids/performance1536d500k/centroids_256.npy
+
+# GAS: enVector-customized ANN
+envectorivfgas:
+  ...
+```
 
 
 ## ❓ Troubleshooting

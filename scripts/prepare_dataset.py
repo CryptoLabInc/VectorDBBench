@@ -44,7 +44,7 @@ def get_args():
         "--centroids-dir",
         type=str,
         default="./centroids",
-        help="Directory to save the centroids and tree info.",
+        help="Directory to save the centroids.",
     )
     return parser.parse_args()
 
@@ -92,7 +92,7 @@ def prepare_neighbors(
 
 
 def download_centroids(embedding_model: str, dataset_dir: str) -> None:
-    """Download pre-computed centroids and tree info for GAS VCT index."""
+    """Download pre-computed centroids and for IVF_GAS index."""
 
     if embedding_model != "embeddinggemma-300m":
         raise ValueError(f"Centroids for {embedding_model} currently not available.")
@@ -103,8 +103,7 @@ def download_centroids(embedding_model: str, dataset_dir: str) -> None:
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
     wget.download(f"{dataset_link}/centroids.npy", out=os.path.join(dataset_dir, embedding_model, "centroids.npy"))
-    wget.download(f"{dataset_link}/tree_info.pkl", out=os.path.join(dataset_dir, embedding_model, "tree_info.pkl"))
-    print(f"\nDownloaded centroids and tree info to {os.path.join(dataset_dir, embedding_model)}")
+    print(f"\nDownloaded centroids to {os.path.join(dataset_dir, embedding_model)}")
 
 
 if __name__ == "__main__":
