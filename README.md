@@ -221,11 +221,6 @@ We will support adjustable `NUM_PER_BATCH` for ANN soon.
 If you want to test on other benchmark datasets regardless ANN benchmark, please run the following scripts:
 
 ```python
-# (Optional) Prepare laion dataset
-python ./scripts/prepare_laion_dataset.py \
-    --dataset-dir ./dataset/laion512d500k \
-    --dataset-size 500_000
-
 # (Optional) Prepare random dataset
 python ./scripts/prepare_random_dataset.py \
     --dataset-dir ./dataset/random512d1m \
