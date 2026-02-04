@@ -13,24 +13,20 @@ import pyarrow.parquet as pq
 import wget
 from datasets import load_dataset
 
-
 SUPPORTED_CASES = {
     "pubmed768d400k": {
         "dataset_name": "cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m",
-        "embedding_model": "embeddinggemma-300m"
+        "embedding_model": "embeddinggemma-300m",
     },
     "bloomberg768d368k": {
         "dataset_name": "cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m",
-        "embedding_model": "embeddinggemma-300m"
+        "embedding_model": "embeddinggemma-300m",
     },
     "products512d400k": {
         "dataset_name": "cryptolab-playground/amazon-products-clip-vit-b-32",
-        "embedding_model": "clip-vit-b-32"
+        "embedding_model": "clip-vit-b-32",
     },
-    "food512d101k": {
-        "dataset_name": "cryptolab-playground/food101-clip-vit-b-32",
-        "embedding_model": "clip-vit-b-32"
-    }
+    "food512d101k": {"dataset_name": "cryptolab-playground/food101-clip-vit-b-32", "embedding_model": "clip-vit-b-32"},
 }
 SUPPORTED_EMBEDDING_MODELS = ["embeddinggemma-300m", "clip-vit-b-32"]
 
@@ -111,9 +107,7 @@ def download_centroids(embedding_model: str, dataset_dir: str) -> None:
         raise ValueError(f"Centroids for {embedding_model} currently not available.")
 
     # BASE URL: https://huggingface.co/datasets/cryptolab-playground/gas-centroids
-    dataset_link = (
-        f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/main/{embedding_model}"
-    )
+    dataset_link = f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/main/{embedding_model}"
 
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
@@ -124,10 +118,14 @@ def download_centroids(embedding_model: str, dataset_dir: str) -> None:
 if __name__ == "__main__":
     args = get_args()
 
-    base_dataset_dir = os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset") if args.dataset_dir is None else args.dataset_dir
+    base_dataset_dir = (
+        os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset")
+        if args.dataset_dir is None
+        else args.dataset_dir
+    )
     args.dataset_dir = os.path.join(base_dataset_dir, args.dataset_name)
     os.makedirs(args.dataset_dir, exist_ok=True)
-    
+
     download_dataset(args.dataset_name, args.dataset_dir)
     prepare_neighbors(args.dataset_dir)
     download_centroids(SUPPORTED_CASES[args.dataset_name]["embedding_model"], args.centroids_dir)
