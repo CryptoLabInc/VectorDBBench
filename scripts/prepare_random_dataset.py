@@ -1,3 +1,7 @@
+"""
+Prepare random dataset and ground truth neighbors for test purposes.
+"""
+
 import argparse
 import os
 
