@@ -40,7 +40,7 @@ envectorivfgas:
   <<: [*base_dataset, *base_envector]
   index_name: bloomberg_ivfgas
   db_label: BLOOMBERG768D368K-IVFGAS
-  nlist: 32768
+  nlist: 1024
   nprobe: 6
   train_centroids: true
   centroids_path: centroids/embeddinggemma-300m/centroids.npy

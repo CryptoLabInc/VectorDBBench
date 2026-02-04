@@ -32,7 +32,7 @@ def get_args():
         "--dataset-dir",
         type=str,
         default=os.path.join(os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset"), "pubmed768d400k"),
-        help="Dataset directory to save the dataset and neighbors. Default: 'pubmed768d400k' in DATASET_LOCAL_DIR.",
+        help="Dataset directory to save the dataset and neighbors. Default: 'pubmed768d400k' in DATASET_LOCAL_DIR. Or use bloomberg768d368k or products512d400k for other datasets.",
     )
     parser.add_argument(
         "-e",
@@ -96,12 +96,14 @@ def prepare_neighbors(
 def download_centroids(embedding_model: str, dataset_dir: str) -> None:
     """Download pre-computed centroids and for IVF_GAS index."""
 
-    if embedding_model != "embeddinggemma-300m":
+    if embedding_model not in ["embeddinggemma-300m", "clip-vit-b-32"]:
         raise ValueError(f"Centroids for {embedding_model} currently not available.")
 
     # BASE URL: https://huggingface.co/datasets/cryptolab-playground/gas-centroids
-    dataset_link = f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/tree/add-dataset-v1/{embedding_model}"
-    
+    dataset_link = (
+        f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/add-dataset-v1/{embedding_model}"
+    )
+
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
     wget.download(f"{dataset_link}/centroids.npy", out=os.path.join(dataset_dir, embedding_model, "centroids.npy"))

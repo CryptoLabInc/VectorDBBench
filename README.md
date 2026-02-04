@@ -161,10 +161,20 @@ To prepare dataset, run the following command as example:
 # Install dependencies for preparing dataset
 pip install -r ./scripts/requirements.txt
 
-# Prepare GAS dataset
+# Prepare GAS dataset: PUBMED768D400K
 python ./scripts/prepare_dataset.py \
     -d cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m \
     -e embeddinggemma-300m
+
+# Prepare GAS dataset: BLOOMBERG768D368K
+python ./scripts/prepare_dataset.py \
+    -d cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m \
+    -e embeddinggemma-300m
+
+# Prepare GAS dataset: PRODUCTS512D400K
+python ./scripts/prepare_dataset.py \
+    -d playground/amazon-products-clip-vit-b-32 \
+    -e clip-vit-b-32
 ```
 
 Then, you can find the generated files as follows:
@@ -205,7 +215,7 @@ python -m vectordb_bench.cli.vectordbbench envectorivfflat \
     ... \
     --train-centroids True \
     --centroids-path "./centroids/embeddinggemma-300m/centroids.npy" \
-    --nlist 32768 \
+    --nlist 1024 \
     --nprobe 6
 ```
 
