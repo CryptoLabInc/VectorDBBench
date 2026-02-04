@@ -13,6 +13,23 @@ import pyarrow.parquet as pq
 import wget
 from datasets import load_dataset
 
+SUPPORTED_CASES = {
+    "pubmed768d400k": {
+        "dataset_name": "cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m",
+        "embedding_model": "embeddinggemma-300m",
+    },
+    "bloomberg768d368k": {
+        "dataset_name": "cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m",
+        "embedding_model": "embeddinggemma-300m",
+    },
+    "products512d400k": {
+        "dataset_name": "cryptolab-playground/amazon-products-clip-vit-b-32",
+        "embedding_model": "clip-vit-b-32",
+    },
+    "food512d101k": {"dataset_name": "cryptolab-playground/food101-clip-vit-b-32", "embedding_model": "clip-vit-b-32"},
+}
+SUPPORTED_EMBEDDING_MODELS = ["embeddinggemma-300m", "clip-vit-b-32"]
+
 
 def get_args():
     parser = argparse.ArgumentParser(description="Prepare dataset and ground truth neighbors for benchmarking.")
@@ -20,25 +37,15 @@ def get_args():
         "-d",
         "--dataset-name",
         type=str,
-        default="cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m",
+        default="pubmed768d400k",
         help="Huggingface dataset name to download.",
-        choices=[
-            "cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m",
-            "cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m",
-        ],
+        choices=list(SUPPORTED_CASES.keys()),
     )
     parser.add_argument(
         "--dataset-dir",
         type=str,
-        default=os.path.join(os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset"), "pubmed768d400k"),
-        help="Dataset directory to save the dataset and neighbors. Default: 'pubmed768d400k' in DATASET_LOCAL_DIR.",
-    )
-    parser.add_argument(
-        "-e",
-        "--embedding-model",
-        type=str,
-        default="embeddinggemma-300m",
-        help="Embedding model name to download centroids for.",
+        default=None,
+        help="Dataset directory to save the dataset and neighbors. Default: <dataset_name> in DATASET_LOCAL_DIR.",
     )
     parser.add_argument(
         "--centroids-dir",
@@ -52,7 +59,7 @@ def get_args():
 def download_dataset(dataset_name: str, output_dir: str = "./dataset/pubmed768d400k") -> None:
     """Download dataset from Huggingface and save as Parquet files."""
     # load dataset
-    ds = load_dataset(dataset_name)
+    ds = load_dataset(SUPPORTED_CASES[dataset_name]["dataset_name"])
     train = ds["train"].to_pandas()
     test = ds["test"].to_pandas()
 
@@ -62,6 +69,7 @@ def download_dataset(dataset_name: str, output_dir: str = "./dataset/pubmed768d4
 
     test_table = pa.Table.from_pandas(test)
     pq.write_table(test_table, f"{output_dir}/test.parquet")
+    print(f"Saved train and test parquet data to {output_dir}.")
 
 
 def prepare_neighbors(
@@ -89,12 +97,13 @@ def prepare_neighbors(
 
     table = pa.Table.from_pandas(df)
     pq.write_table(table, f"{data_dir}/neighbors.parquet")
+    print(f"Saved neighbors data to {data_dir}.")
 
 
 def download_centroids(embedding_model: str, dataset_dir: str) -> None:
     """Download pre-computed centroids and for IVF_GAS index."""
 
-    if embedding_model != "embeddinggemma-300m":
+    if embedding_model not in SUPPORTED_EMBEDDING_MODELS:
         raise ValueError(f"Centroids for {embedding_model} currently not available.")
 
     # BASE URL: https://huggingface.co/datasets/cryptolab-playground/gas-centroids
@@ -103,13 +112,20 @@ def download_centroids(embedding_model: str, dataset_dir: str) -> None:
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
     wget.download(f"{dataset_link}/centroids.npy", out=os.path.join(dataset_dir, embedding_model, "centroids.npy"))
-    print(f"\nDownloaded centroids to {os.path.join(dataset_dir, embedding_model)}")
+    print(f"\nSaved centroids data to {os.path.join(dataset_dir, embedding_model)}")
 
 
 if __name__ == "__main__":
     args = get_args()
+
+    base_dataset_dir = (
+        os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset")
+        if args.dataset_dir is None
+        else args.dataset_dir
+    )
+    args.dataset_dir = os.path.join(base_dataset_dir, args.dataset_name)
     os.makedirs(args.dataset_dir, exist_ok=True)
 
     download_dataset(args.dataset_name, args.dataset_dir)
     prepare_neighbors(args.dataset_dir)
-    download_centroids(args.embedding_model, args.centroids_dir)
+    download_centroids(SUPPORTED_CASES[args.dataset_name]["embedding_model"], args.centroids_dir)

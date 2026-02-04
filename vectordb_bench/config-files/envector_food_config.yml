@@ -1,11 +1,11 @@
 # Custom Case
 _base_dataset: &base_dataset
   case_type: PerformanceCustomDataset
-  custom_case_name: PRODUCTS512D400K
-  custom_case_description: PRODUCTS512D400K benchmark (512D, 400K vectors)
-  custom_dataset_name: PRODUCTS512D400K
+  custom_case_name: FOOD512D101K
+  custom_case_description: FOOD512D101K benchmark (512D, 101K vectors)
+  custom_dataset_name: FOOD512D101K
   custom_dataset_dir: ""
-  custom_dataset_size: 400000
+  custom_dataset_size: 101000
   custom_dataset_dim: 512
   custom_dataset_file_count: 1
   custom_dataset_use_shuffled: false
@@ -22,25 +22,25 @@ _base_envector: &base_envector
 # FLAT
 envectorflat:
   <<: [*base_dataset, *base_envector]
-  index_name: products_flat
-  db_label: PRODUCTS512D400K-FLAT
+  index_name: food101_flat
+  db_label: FOOD512D101K-FLAT
 
 # IVF-FLAT with trained k-means centroids
 envectorivfflat:
   <<: [*base_dataset, *base_envector]
-  index_name: products_ivfflat
-  db_label: PRODUCTS512D400K-IVFFLAT
+  index_name: food101_ivfflat
+  db_label: FOOD512D101K-IVFFLAT
   nlist: 128
   nprobe: 6
   train_centroids: true
-  centroids_path: products/centroids/centroids_128.npy
+  centroids_path: food/centroids/centroids_128.npy
 
 # GAS: enVector-customized ANN
 envectorivfgas:
   <<: [*base_dataset, *base_envector]
-  index_name: products_ivfgas
-  db_label: PRODUCTS512D400K-IVFGAS
+  index_name: food101_ivfgas
+  db_label: FOOD512D101K-IVFGAS
   nlist: 1024
-  nprobe: 16
+  nprobe: 6
   train_centroids: true
   centroids_path: centroids/clip-vit-b-32/centroids.npy
