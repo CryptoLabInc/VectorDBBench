@@ -63,8 +63,9 @@ enVector supports two types of benchmark cases:
 ├── README.md
 ├── scripts
 │   ├── get_kmeans_centroids.py              # create kmeans centroids
+│   ├── prepare_dataset.py                   # download and prepare ground truth neighbors for GAS dataset
+│   ├── prepare_random_dataset.py                   # download and prepare ground truth neighbors for random dataset
 │   ├── requirements.txt                     # python requirements
-│   ├── prepare_dataset.py                   # download and prepare ground truth neighbors for dataset
 │   └── run_benchmark.sh                     # benchmark script
 └── vectordb_bench/config-files              # benchmark config file
     └── envector_{benchmark_case}_config.yml
@@ -116,7 +117,7 @@ Run the following commands to run enVector with VectorDBBench's built-in benchma
 ./scripts/run_benchmark.sh --index-type IVF_FLAT  --config-file envector_{benchmark_case}_config.yml # IVF-FLAT
 ```
 
-For more details, please refer to `envector_{benchmark_case}_config.yml` in scripts directory for benchmarks with enVector, or you can use the following command:
+For more details, please refer to `envector_{benchmark_case}_config.yml` in `vectordb_bench/config-files` directory for benchmarks with enVector, or you can use the following command:
 
 ```bash
 python -m vectordb_bench.cli.vectordbbench envectorflat \
@@ -147,10 +148,11 @@ Prepare the following artifacts for the ANN benchmark with `scripts/prepare_data
 - prepare ground-truth neighbors
 - download centroids for the GAS index for corresponding to the embedding model
 
-For the ANN benchmark, we provide two datasets via HuggingFace:
-- `PUBMED768D400K`: [cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m](https://huggingface.co/datasets/cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m)
-- `BLOOMBERG768D368K`: [cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m](https://huggingface.co/datasets/cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m)
-- `PRODUCTS512D400K`: [cryptolab-playground/amazon-products-clip-vit-b-32](https://huggingface.co/datasets/cryptolab-playground/amazon-products-clip-vit-b-32)
+For the ANN benchmark, we provide four datasets via HuggingFace:
+- `pubmed768d400k`: [cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m](https://huggingface.co/datasets/cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m)
+- `bloomberg768d368k`: [cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m](https://huggingface.co/datasets/cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m)
+- `products512d400k`: [cryptolab-playground/amazon-products-clip-vit-b-32](https://huggingface.co/datasets/cryptolab-playground/amazon-products-clip-vit-b-32)
+- `food512d101k`: [cryptolab-playground/food101-clip-vit-b-32](https://huggingface.co/datasets/cryptolab-playground/food101-clip-vit-b-32)
 
 Also, we provide centroids for the corresponding embedding model used in the ANN benchmark:
 - GAS Centroids: [cryptolab-playground/gas-centroids](https://huggingface.co/datasets/cryptolab-playground/gas-centroids)
@@ -161,20 +163,9 @@ To prepare dataset, run the following command as example:
 # Install dependencies for preparing dataset
 pip install -r ./scripts/requirements.txt
 
-# Prepare GAS dataset: PUBMED768D400K
+# Prepare GAS dataset
 python ./scripts/prepare_dataset.py \
-    -d cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m \
-    -e embeddinggemma-300m
-
-# Prepare GAS dataset: BLOOMBERG768D368K
-python ./scripts/prepare_dataset.py \
-    -d cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m \
-    -e embeddinggemma-300m
-
-# Prepare GAS dataset: PRODUCTS512D400K
-python ./scripts/prepare_dataset.py \
-    -d playground/amazon-products-clip-vit-b-32 \
-    -e clip-vit-b-32
+    -d pubmed768d400k
 ```
 
 Then, you can find the generated files as follows:
@@ -204,23 +195,20 @@ Run the provided shell scripts (`./scripts/run_benchmark.sh`) as the following:
 For more details, please refer to `run_benchmark.sh` or `envector_{benchmark_case}_config.yml` in scripts directory for benchmarks with enVector with ANN (GAS), or you can use the following command:
 
 ```bash
-python -m vectordb_bench.cli.vectordbbench envectorivfflat \
+python -m vectordb_bench.cli.vectordbbench envectorivfgas \
     --config-file envector_pubmed_config.yml
 
 # or 
 
-python -m vectordb_bench.cli.vectordbbench envectorivfflat \
+python -m vectordb_bench.cli.vectordbbench envectorivfgas \
     --uri "localhost:50050" \
     --eval-mode mm \
     ... \
     --train-centroids True \
     --centroids-path "./centroids/embeddinggemma-300m/centroids.npy" \
-    --nlist 1024 \
+    --nlist 32768 \
     --nprobe 6
 ```
-
-Note that, **`NUM_PER_BATCH` should be set to the database size** when using IVF-based ANN index for enVector currently.
-We will support adjustable `NUM_PER_BATCH` for ANN soon.
 
 ## 🎯 Advanced Usage
 
