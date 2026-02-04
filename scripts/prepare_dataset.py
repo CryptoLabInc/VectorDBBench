@@ -25,6 +25,7 @@ def get_args():
         choices=[
             "cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m",
             "cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m",
+            "cryptolab-playground/amazon-products-clip-vit-b-32",
         ],
     )
     parser.add_argument(
@@ -38,6 +39,7 @@ def get_args():
         "--embedding-model",
         type=str,
         default="embeddinggemma-300m",
+        choices=["embeddinggemma-300m", "clip-vit-b-32"],
         help="Embedding model name to download centroids for.",
     )
     parser.add_argument(
@@ -98,8 +100,8 @@ def download_centroids(embedding_model: str, dataset_dir: str) -> None:
         raise ValueError(f"Centroids for {embedding_model} currently not available.")
 
     # BASE URL: https://huggingface.co/datasets/cryptolab-playground/gas-centroids
-    dataset_link = f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/main/{embedding_model}"
-
+    dataset_link = f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/tree/add-dataset-v1/{embedding_model}"
+    
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
     wget.download(f"{dataset_link}/centroids.npy", out=os.path.join(dataset_dir, embedding_model, "centroids.npy"))

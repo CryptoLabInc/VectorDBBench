@@ -150,9 +150,7 @@ Prepare the following artifacts for the ANN benchmark with `scripts/prepare_data
 For the ANN benchmark, we provide two datasets via HuggingFace:
 - `PUBMED768D400K`: [cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m](https://huggingface.co/datasets/cryptolab-playground/pubmed-arxiv-abstract-embedding-gemma-300m)
 - `BLOOMBERG768D368K`: [cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m](https://huggingface.co/datasets/cryptolab-playground/Bloomberg-Financial-News-embedding-gemma-300m)
-- `PRODUCTS512D400K`
-- `FASHION512D200K`
-- `FOOD512D75K`
+- `PRODUCTS512D400K`: [cryptolab-playground/amazon-products-clip-vit-b-32](https://huggingface.co/datasets/cryptolab-playground/amazon-products-clip-vit-b-32)
 
 Also, we provide centroids for the corresponding embedding model used in the ANN benchmark:
 - GAS Centroids: [cryptolab-playground/gas-centroids](https://huggingface.co/datasets/cryptolab-playground/gas-centroids)
