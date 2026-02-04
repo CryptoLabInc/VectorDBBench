@@ -73,6 +73,7 @@ def download_dataset(dataset_name: str, output_dir: str = "./dataset/pubmed768d4
 
     test_table = pa.Table.from_pandas(test)
     pq.write_table(test_table, f"{output_dir}/test.parquet")
+    print(f"Saved train and test parquet data to {output_dir}.")
 
 
 def prepare_neighbors(
@@ -100,6 +101,7 @@ def prepare_neighbors(
 
     table = pa.Table.from_pandas(df)
     pq.write_table(table, f"{data_dir}/neighbors.parquet")
+    print(f"Saved neighbors data to {data_dir}.")
 
 
 def download_centroids(embedding_model: str, dataset_dir: str) -> None:
@@ -110,13 +112,13 @@ def download_centroids(embedding_model: str, dataset_dir: str) -> None:
 
     # BASE URL: https://huggingface.co/datasets/cryptolab-playground/gas-centroids
     dataset_link = (
-        f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/add-dataset-v1/{embedding_model}"
+        f"https://huggingface.co/datasets/cryptolab-playground/gas-centroids/resolve/main/{embedding_model}"
     )
 
     # download
     os.makedirs(os.path.join(dataset_dir, embedding_model), exist_ok=True)
     wget.download(f"{dataset_link}/centroids.npy", out=os.path.join(dataset_dir, embedding_model, "centroids.npy"))
-    print(f"\nDownloaded centroids to {os.path.join(dataset_dir, embedding_model)}")
+    print(f"\nSaved centroids data to {os.path.join(dataset_dir, embedding_model)}")
 
 
 if __name__ == "__main__":
@@ -125,7 +127,7 @@ if __name__ == "__main__":
     base_dataset_dir = os.environ.get("DATASET_LOCAL_DIR", "/tmp/vectordb_bench/dataset") if args.dataset_dir is None else args.dataset_dir
     args.dataset_dir = os.path.join(base_dataset_dir, args.dataset_name)
     os.makedirs(args.dataset_dir, exist_ok=True)
-
+    
     download_dataset(args.dataset_name, args.dataset_dir)
     prepare_neighbors(args.dataset_dir)
     download_centroids(SUPPORTED_CASES[args.dataset_name]["embedding_model"], args.centroids_dir)

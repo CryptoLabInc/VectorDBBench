@@ -41,6 +41,6 @@ envectorivfgas:
   index_name: products_ivfgas
   db_label: PRODUCTS512D400K-IVFGAS
   nlist: 1024
-  nprobe: 12
+  nprobe: 16
   train_centroids: true
   centroids_path: centroids/clip-vit-b-32/centroids.npy
