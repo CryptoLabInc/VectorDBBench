@@ -23,11 +23,45 @@ class EnVectorTypedDict(TypedDict):
     ]
     eval_mode: Annotated[
         str,
-        click.option("--eval-mode", help="Evaluation mode", type=click.Choice(["mm", "rmp"]), default="mm"),
+        click.option(
+            "--eval-mode",
+            help="Evaluation mode",
+            type=click.Choice(["mm", "mms", "mm32", "mms32", "rmp"]),
+            default="mm32",
+        ),
+    ]
+    preset: Annotated[
+        str,
+        click.option(
+            "--preset",
+            help="Parameter preset (must match --eval-mode: mm/mms->ip1, mm32/mms32->ip2 or ip3). "
+            "Empty => derived from --eval-mode.",
+            type=str,
+            default="",
+        ),
     ]
     index_name: Annotated[
         str,
         click.option("--index-name", help="Index name", type=str, default="vdbbench"),
+    ]
+    key_id: Annotated[
+        str,
+        click.option(
+            "--key-id", help="enVector key id (KMS-managed or local keys/<id>/)", type=str, default="default_key"
+        ),
+    ]
+    kms_address: Annotated[
+        str,
+        click.option(
+            "--kms-address",
+            type=str,
+            default="",
+            help="KMS gateway host:port; enables KMS-managed keys (empty = local keys)",
+        ),
+    ]
+    kms_secure: Annotated[
+        bool,
+        click.option("--kms-secure", type=bool, default=False, help="Use TLS to the KMS gateway"),
     ]
 
 
@@ -44,11 +78,14 @@ def EnVectorFlat(**parameters: Unpack[EnVectorFlatIndexTypedDict]):
         db_config=EnVectorConfig(
             db_label=parameters["db_label"],
             uri=SecretStr(parameters["uri"]),
+            key_id=parameters["key_id"],
             eval_mode=parameters["eval_mode"],
             collection_name=parameters["index_name"],
+            kms_address=parameters["kms_address"],
+            kms_secure=parameters["kms_secure"],
             index_params={},
         ),
-        db_case_config=FlatIndexConfig(),
+        db_case_config=FlatIndexConfig(eval_mode=parameters["eval_mode"], preset=parameters["preset"]),
         **parameters,
     )
 
@@ -84,11 +121,16 @@ def EnVectorIVFFlat(**parameters: Unpack[EnVectorIVFFlatIndexTypedDict]):
         db_config=EnVectorConfig(
             db_label=parameters["db_label"],
             uri=SecretStr(parameters["uri"]),
+            key_id=parameters["key_id"],
             eval_mode=parameters["eval_mode"],
             collection_name=parameters["index_name"],
+            kms_address=parameters["kms_address"],
+            kms_secure=parameters["kms_secure"],
             index_params={"nlist": parameters["nlist"], "nprobe": parameters["nprobe"]},
         ),
         db_case_config=IVFFlatIndexConfig(
+            eval_mode=parameters["eval_mode"],
+            preset=parameters["preset"],
             nlist=parameters["nlist"],
             nprobe=parameters["nprobe"],
             train_centroids=parameters["train_centroids"],
@@ -111,11 +153,16 @@ def EnVectorIVFGAS(**parameters: Unpack[EnVectorIVFGASIndexTypedDict]):
         db_config=EnVectorConfig(
             db_label=parameters["db_label"],
             uri=SecretStr(parameters["uri"]),
+            key_id=parameters["key_id"],
             eval_mode=parameters["eval_mode"],
             collection_name=parameters["index_name"],
+            kms_address=parameters["kms_address"],
+            kms_secure=parameters["kms_secure"],
             index_params={"nlist": parameters["nlist"], "nprobe": parameters["nprobe"]},
         ),
         db_case_config=IVFGASIndexConfig(
+            eval_mode=parameters["eval_mode"],
+            preset=parameters["preset"],
             nlist=parameters["nlist"],
             nprobe=parameters["nprobe"],
             train_centroids=parameters["train_centroids"],

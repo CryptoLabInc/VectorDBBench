@@ -1,4 +1,4 @@
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, validator
 
 from ..api import DBCaseConfig, DBConfig, IndexType, MetricType
 
@@ -10,13 +10,32 @@ class EnVectorConfig(DBConfig):
     key_path: str = "keys"
     key_id: str = "default_key"
     collection_name: str = "vdbbench"
+    # When set (host:port), keys are managed through the enVector KMS gateway
+    # instead of local key files. Empty string keeps the local-key behavior.
+    kms_address: str = ""
+    kms_secure: bool = False  # use TLS when talking to the KMS gateway
 
     def to_dict(self) -> dict:
         return {
             "uri": self.uri.get_secret_value(),
             "key_path": self.key_path,
             "key_id": self.key_id,
+            "collection_name": self.collection_name,
+            "kms_address": self.kms_address,
+            "kms_secure": self.kms_secure,
         }
+
+    @validator("*")
+    def not_empty_field(cls, v: any, field: any):
+        if (
+            field.name in cls.common_short_configs()
+            or field.name in cls.common_long_configs()
+            or field.name == "kms_address"  # empty = local keys (no KMS gateway)
+        ):
+            return v
+        if not v and isinstance(v, str | SecretStr):
+            raise ValueError("Empty string!")
+        return v
 
 
 class EnVectorIndexConfig(BaseModel):
@@ -25,7 +44,11 @@ class EnVectorIndexConfig(BaseModel):
     index: IndexType
     metric_type: MetricType = MetricType.COSINE  # envector supports cosine similarity only
     use_partition_key: bool = True  # for label-filter
-    eval_mode: str = "mm"  # default eval_mode
+    eval_mode: str = "mm32"  # default eval_mode
+    # Parameter preset. Empty => pyenvector derives the per-eval_mode default
+    # (mm/mms->ip1, mm32/mms32->ip2). Set explicitly to override, e.g. "ip3"
+    # for mm32/mms32.
+    preset: str = ""
 
     @property
     def is_gpu_index(self) -> bool:
