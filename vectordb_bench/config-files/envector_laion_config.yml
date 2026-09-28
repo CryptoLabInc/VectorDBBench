@@ -1,0 +1,36 @@
+# Custom Case
+_base_dataset: &base_dataset
+  case_type: PerformanceCustomDataset
+  custom_case_name: LAION512D500K
+  custom_case_description: LAION512D500K benchmark (512D, 500K vectors)
+  custom_dataset_name: LAION512D500K
+  custom_dataset_dir: ""
+  custom_dataset_size: 500000
+  custom_dataset_dim: 512
+  custom_dataset_file_count: 1
+  custom_dataset_use_shuffled: false
+  custom_dataset_with_gt: true
+  k: 10
+
+# envector server settings
+_base_envector: &base_envector
+  uri: localhost:50050
+  eval_mode: mm
+  drop_old: true
+  load: true
+
+# FLAT
+envectorflat:
+  <<: [*base_dataset, *base_envector]
+  index_name: laion_flat
+  db_label: LAION512D500K-FLAT
+
+# IVF-FLAT with trained k-means centroids
+envectorivfflat:
+  <<: [*base_dataset, *base_envector]
+  index_name: laion_ivfflat
+  db_label: LAION512D500K-IVF
+  nlist: 256
+  nprobe: 16
+  train_centroids: true
+  centroids_path: centroids/laion512d500k/centroids.npy

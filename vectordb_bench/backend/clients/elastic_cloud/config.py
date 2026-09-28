@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import strEnum
 
 from pydantic import BaseModel, SecretStr
 
@@ -16,7 +16,7 @@ class ElasticCloudConfig(DBConfig, BaseModel):
         }
 
 
-class ESElementType(str, Enum):
+class ESElementType(strEnum):
     float = "float"  # 4 byte
     byte = "byte"  # 1 byte, -128 to 127
 

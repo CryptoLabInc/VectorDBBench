@@ -49,7 +49,10 @@ if __name__ == "__main__":
 
     print("Building base image...")
 
-    subprocess.check_call("docker build \
-        --rm -t %s -f %s ." % (docker_tag_base(), dockerfile_path_base()), shell=True)
+    subprocess.check_call(
+        "docker build \
+        --rm -t %s -f %s ." % (docker_tag_base(), dockerfile_path_base()),
+        shell=True,
+    )
 
     print("Building end.")

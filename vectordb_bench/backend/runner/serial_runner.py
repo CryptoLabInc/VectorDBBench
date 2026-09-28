@@ -2,7 +2,6 @@ import concurrent
 import logging
 import math
 import multiprocessing as mp
-import os
 import time
 import traceback
 
@@ -21,8 +20,6 @@ from ..clients import api
 
 NUM_PER_BATCH = config.NUM_PER_BATCH
 LOAD_MAX_TRY_COUNT = config.LOAD_MAX_TRY_COUNT
-INSERT_TIMEOUT = max(int(os.environ.get("INSERT_TIMEOUT", "300")), config.LOAD_TIMEOUT_DEFAULT)
-INSERT_POLL_INTERVAL = int(os.environ.get("INSERT_POLL_INTERVAL", "60"))
 
 log = logging.getLogger(__name__)
 
@@ -54,13 +51,15 @@ class SerialInsertRunner:
                 msg = f"Insert failed and retried more than {config.MAX_INSERT_RETRY} times"
                 raise RuntimeError(msg) from None
 
-    def task(self) -> int:
+    def task(self) -> tuple[int, list[str]]:
         count = 0
         with self.db.init():
             log.info(f"({mp.current_process().name:16}) Start inserting embeddings in batch {config.NUM_PER_BATCH}")
             start = time.perf_counter()
             request_ids = []
             for data_df in self.dataset:
+                request_id = []
+                kwargs = {}
                 all_metadata = data_df[self.dataset.data.train_id_field].tolist()
 
                 emb_np = np.stack(data_df[self.dataset.data.train_vector_field])
@@ -77,8 +76,10 @@ class SerialInsertRunner:
                         labels_data = self.dataset.scalar_labels[self.filters.label_field][all_metadata].to_list()
                     else:
                         labels_data = data_df[self.filters.label_field].tolist()
+                if isinstance(self.db, EnVector):
+                    kwargs["request_ids"] = request_id
                 insert_count, error = self.db.insert_embeddings(
-                    embeddings=all_embeddings, metadata=all_metadata, labels_data=labels_data, request_ids=request_ids
+                    embeddings=all_embeddings, metadata=all_metadata, labels_data=labels_data, **kwargs
                 )
                 if error is not None:
                     self.retry_insert(
@@ -86,32 +87,20 @@ class SerialInsertRunner:
                         embeddings=all_embeddings,
                         metadata=all_metadata,
                         labels_data=labels_data,
-                        request_ids=request_ids,
+                        **kwargs,
                     )
-
+                request_ids.extend(request_id)
                 assert insert_count == len(all_metadata)
                 count += insert_count
                 if count % 100_000 == 0:
                     log.info(f"({mp.current_process().name:16}) Loaded {count} embeddings into VectorDB")
-
-            if isinstance(self.db, EnVector):
-                log.info(
-                    "Waiting for inserted rows to become searchable (Index Operation Status v0)... "
-                    f"(requests={len(request_ids)}, timeout={INSERT_TIMEOUT}s)"
-                )
-                self.db.col.indexer.wait_for_inserts_searchable(
-                    index_name=self.db.collection_name,
-                    request_ids=request_ids,
-                    timeout_s=INSERT_TIMEOUT,
-                    poll_interval_s=INSERT_POLL_INTERVAL,
-                )
 
             log.info(
                 f"({mp.current_process().name:16}) Finish loading all dataset into VectorDB, "
                 f"dur={time.perf_counter() - start}"
             )
 
-            return count
+            return count, request_ids
 
     def endless_insert_data(self, all_embeddings: list, all_metadata: list, left_id: int = 0) -> int:
         with self.db.init():
@@ -163,7 +152,7 @@ class SerialInsertRunner:
         return count
 
     @utils.time_it
-    def _insert_all_batches(self) -> int:
+    def _insert_all_batches(self) -> tuple[int, list[str]]:
         """Performance case only"""
         with concurrent.futures.ProcessPoolExecutor(
             mp_context=mp.get_context("spawn"),
@@ -171,7 +160,7 @@ class SerialInsertRunner:
         ) as executor:
             future = executor.submit(self.task)
             try:
-                count = future.result(timeout=self.timeout)
+                return future.result(timeout=self.timeout)
             except TimeoutError as e:
                 msg = f"VectorDB load dataset timeout in {self.timeout}"
                 log.warning(msg)
@@ -181,8 +170,6 @@ class SerialInsertRunner:
             except Exception as e:
                 log.warning(f"VectorDB load dataset error: {e}")
                 raise e from e
-            else:
-                return count
 
     def run_endlessness(self) -> int:
         """run forever util DB raises exception or crash"""
@@ -220,7 +207,9 @@ class SerialInsertRunner:
             raise LoadTimeoutError(self.timeout)
 
     def run(self) -> int:
-        count, _ = self._insert_all_batches()
+        (count, request_ids), _ = self._insert_all_batches()
+        if isinstance(self.db, EnVector):
+            self.db.set_request_ids(request_ids)
         return count
 
 

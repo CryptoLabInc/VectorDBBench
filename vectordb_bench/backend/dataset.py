@@ -120,14 +120,16 @@ class CustomDataset(BaseDataset):
 
     @property
     def train_files(self) -> list[str]:
-        train_file = self.train_file
-        prefix = f"{train_file}"
-        train_files = []
-        prefix_s = [item.strip() for item in prefix.split(",") if item.strip()]
-        for i in range(len(prefix_s)):
-            sub_file = f"{prefix_s[i]}.parquet"
-            train_files.append(sub_file)
-        return train_files
+        # Explicit comma-separated base names take precedence (e.g. "a,b" -> a.parquet,b.parquet).
+        prefix_s = [item.strip() for item in self.train_file.split(",") if item.strip()]
+        if len(prefix_s) > 1:
+            return [f"{name}.parquet" for name in prefix_s]
+        # A single base name is sharded by file_num: train_00.parquet .. train_{N-1}.parquet
+        # (2-digit zero-padded). file_num <= 1 keeps the original single-file behavior.
+        base = prefix_s[0] if prefix_s else "train"
+        if self.file_num and self.file_num > 1:
+            return [f"{base}_{i:02d}.parquet" for i in range(self.file_num)]
+        return [f"{base}.parquet"]
 
 
 class LAION(BaseDataset):
