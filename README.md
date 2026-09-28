@@ -22,7 +22,7 @@ cd envector-deployment/docker-compose
 ```bash
 # Install Python Dependencies
 pip install -e .
-pip install pyenvector==1.3.0a1
+pip install pyenvector==1.6.2
 ```
 
 3. Run Benchmark
@@ -84,7 +84,7 @@ pip install -e .
 
 # 3. Install pyenvector
 # pip uninstall pyenvector  # if installed
-pip install pyenvector==1.3.0a1
+pip install pyenvector==1.6.2
 ```
 
 ### 2. Prepare enVector Server
